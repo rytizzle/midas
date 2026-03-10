@@ -13,10 +13,10 @@ set -e
 
 TARGET="${1:-dev}"
 
-# Read variables from the DAB target
+# Read variables from the DAB target (handles both 'value' and 'default' keys across CLI versions)
 get_var() {
     databricks bundle validate -t "$TARGET" --output json 2>/dev/null \
-        | python3 -c "import sys,json; print(json.load(sys.stdin)['variables']['$1']['value'])"
+        | python3 -c "import sys,json; v=json.load(sys.stdin)['variables']['$1']; print(v.get('value', v.get('default', '')))"
 }
 
 PROFILE=$(databricks bundle validate -t "$TARGET" --output json 2>/dev/null \
