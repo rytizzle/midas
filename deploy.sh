@@ -76,7 +76,13 @@ fi
 echo "==> Deploying bundle..."
 databricks bundle deploy -t "$TARGET"
 
-echo "==> Setting OBO scopes and resources..."
+echo "==> Setting OBO scopes..."
+RESOURCES="[{\"name\": \"serving-endpoint\", \"serving_endpoint\": {\"name\": \"${SERVING_ENDPOINT}\", \"permission\": \"CAN_QUERY\"}}"
+if [ "$OTEL_ENABLED" = "true" ]; then
+    RESOURCES="${RESOURCES}, {\"name\": \"sql-warehouse\", \"sql_warehouse\": {\"id\": \"${WAREHOUSE_ID}\", \"permission\": \"CAN_USE\"}}"
+fi
+RESOURCES="${RESOURCES}]"
+
 databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
   \"user_api_scopes\": [
     \"sql\",
@@ -86,10 +92,7 @@ databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
     \"catalog.schemas:read\",
     \"catalog.tables:read\"
   ],
-  \"resources\": [
-    {\"name\": \"sql-warehouse\", \"sql_warehouse\": {\"id\": \"${WAREHOUSE_ID}\", \"permission\": \"CAN_USE\"}},
-    {\"name\": \"serving-endpoint\", \"serving_endpoint\": {\"name\": \"${SERVING_ENDPOINT}\", \"permission\": \"CAN_QUERY\"}}
-  ]
+  \"resources\": ${RESOURCES}
 }"
 
 if [ "$OTEL_ENABLED" = "true" ]; then
