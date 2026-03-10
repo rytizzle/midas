@@ -1,12 +1,30 @@
 bundle:
   name: midas
 
-workspace:
-  profile: midas
-
 variables:
+  # ── App Config ──
   catalog:
+    description: "Unity Catalog catalog for Midas to browse"
     default: midas_catalog
+  warehouse_id:
+    description: "SQL warehouse ID for telemetry writes and permission checks"
+  serving_endpoint:
+    description: "Foundation Model serving endpoint name"
+    default: databricks-claude-sonnet-4-5
+
+  # ── OTel Observability Config ──
+  otel_enabled:
+    description: "Enable OTel telemetry writes (true/false)"
+    default: "true"
+  otel_catalog:
+    description: "Catalog for OTel tables (defaults to same as catalog)"
+    default: ${var.catalog}
+  otel_raw_schema:
+    description: "Schema name for raw bronze OTel tables"
+    default: otel_raw
+  otel_observability_schema:
+    description: "Schema name for processed silver/gold OTel tables"
+    default: otel_observability
 
 sync:
   include:
@@ -23,25 +41,25 @@ resources:
       description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
       source_code_path: ./.build
       permissions:
-        - user_name: ryan.tom@databricks.com
+        - user_name: ${workspace.current_user.userName}
           level: CAN_MANAGE
 
   schemas:
     otel_raw_schema:
-      catalog_name: ${var.catalog}
-      name: otel_raw
+      catalog_name: ${var.otel_catalog}
+      name: ${var.otel_raw_schema}
       comment: "Raw OTel v2 OTLP bronze tables - spans, logs, metrics"
 
     otel_observability_schema:
-      catalog_name: ${var.catalog}
-      name: otel_observability
+      catalog_name: ${var.otel_catalog}
+      name: ${var.otel_observability_schema}
       comment: "Processed OTel data - silver cleaned tables and gold analytics"
 
   pipelines:
     otel_pipeline:
       name: "midas-otel-observability"
-      catalog: ${var.catalog}
-      target: otel_observability
+      catalog: ${var.otel_catalog}
+      target: ${var.otel_observability_schema}
       serverless: true
       channel: PREVIEW
       continuous: false
@@ -49,8 +67,8 @@ resources:
         - notebook:
             path: ./src/notebooks/dlt_pipeline.py
       configuration:
-        otel.source.catalog: ${var.catalog}
-        otel.source.schema: otel_raw
+        otel.source.catalog: ${var.otel_catalog}
+        otel.source.schema: ${var.otel_raw_schema}
 
   jobs:
     otel_setup:
@@ -60,9 +78,10 @@ resources:
           notebook_task:
             notebook_path: ./src/notebooks/setup_otel_v2.py
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${var.otel_catalog}
+              raw_schema: ${var.otel_raw_schema}
+              observability_schema: ${var.otel_observability_schema}
           environment_key: default
-
       environments:
         - environment_key: default
           spec:
@@ -81,3 +100,22 @@ resources:
 targets:
   dev:
     default: true
+    workspace:
+      profile: midas
+    variables:
+      catalog: midas_catalog
+      warehouse_id: a6505a9626cf9ca7
+      serving_endpoint: databricks-claude-sonnet-4-5
+      otel_catalog: midas_catalog
+      otel_raw_schema: otel_raw
+      otel_observability_schema: otel_observability
+
+  # Example: customer or second workspace
+  # prod:
+  #   workspace:
+  #     profile: customer-workspace
+  #   variables:
+  #     catalog: main
+  #     warehouse_id: xyz789
+  #     serving_endpoint: databricks-claude-sonnet-4-5
+  #     otel_enabled: "false"

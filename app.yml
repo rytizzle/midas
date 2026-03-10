@@ -1,1 +1,11 @@
 command: ["uvicorn", "midas.backend.app:app", "--workers", "2"]
+
+env:
+  - name: OTEL_ENABLED
+    value: "true"
+  - name: OTEL_CATALOG
+    value: "midas_catalog"
+  - name: OTEL_SCHEMA
+    value: "otel_raw"
+  - name: OTEL_SERVICE_NAME
+    value: "midas"

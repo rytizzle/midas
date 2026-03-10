@@ -20,6 +20,7 @@ from typing import Optional
 logger = logging.getLogger("midas.telemetry")
 
 # Configuration — set via env vars or defaults
+OTEL_ENABLED = os.environ.get("OTEL_ENABLED", "true").lower() == "true"
 OTEL_CATALOG = os.environ.get("OTEL_CATALOG", "midas_catalog")
 OTEL_SCHEMA = os.environ.get("OTEL_SCHEMA", "otel_raw")
 SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "midas-app")
@@ -83,6 +84,8 @@ def _get_connection():
 
 def _write_span(span: dict):
     """Write a single span to the v2 OTLP spans table."""
+    if not OTEL_ENABLED:
+        return
     conn = _get_connection()
     if conn is None:
         return
@@ -100,18 +103,10 @@ def _write_span(span: dict):
                 %(record_id)s, %(time)s, %(date)s, %(service_name)s,
                 %(trace_id)s, %(span_id)s, %(parent_span_id)s, %(name)s, %(kind)s,
                 %(start_time_unix_nano)s, %(end_time_unix_nano)s,
-                OBJECT('code', %(status_code)s, 'message', %(status_message)s),
+                PARSE_JSON(%(status_json)s) :: STRUCT<message: STRING, code: STRING>,
                 PARSE_JSON(%(attributes)s),
-                OBJECT(
-                    'attributes', PARSE_JSON(%(resource_attributes)s),
-                    'dropped_attributes_count', 0
-                ),
-                OBJECT(
-                    'name', 'midas',
-                    'version', '1.0.0',
-                    'attributes', PARSE_JSON('{{}}'),
-                    'dropped_attributes_count', 0
-                )
+                PARSE_JSON(%(resource_json)s) :: STRUCT<attributes: VARIANT, dropped_attributes_count: INT>,
+                PARSE_JSON(%(scope_json)s) :: STRUCT<name: STRING, version: STRING, attributes: VARIANT, dropped_attributes_count: INT>
             )
         """, {
             "record_id": uuid.uuid4().hex,
@@ -125,12 +120,23 @@ def _write_span(span: dict):
             "kind": "SPAN_KIND_INTERNAL",
             "start_time_unix_nano": span["start_time_unix_nano"],
             "end_time_unix_nano": span["end_time_unix_nano"],
-            "status_code": span["status_code"],
-            "status_message": span.get("status_message", ""),
+            "status_json": json.dumps({
+                "code": span["status_code"],
+                "message": span.get("status_message", ""),
+            }),
             "attributes": json.dumps(span.get("attributes", {})),
-            "resource_attributes": json.dumps({
-                "service.name": SERVICE_NAME,
-                "deployment.environment": os.environ.get("DATABRICKS_APP_NAME", "local"),
+            "resource_json": json.dumps({
+                "attributes": {
+                    "service.name": SERVICE_NAME,
+                    "deployment.environment": os.environ.get("DATABRICKS_APP_NAME", "local"),
+                },
+                "dropped_attributes_count": 0,
+            }),
+            "scope_json": json.dumps({
+                "name": "midas",
+                "version": "1.0.0",
+                "attributes": {},
+                "dropped_attributes_count": 0,
             }),
         })
         cursor.close()
@@ -146,6 +152,8 @@ def _write_span(span: dict):
 
 def _write_log(log_entry: dict):
     """Write a single log record to the v2 OTLP logs table."""
+    if not OTEL_ENABLED:
+        return
     conn = _get_connection()
     if conn is None:
         return
@@ -164,16 +172,8 @@ def _write_log(log_entry: dict):
                 %(trace_id)s, %(span_id)s, %(time_unix_nano)s,
                 %(severity_number)s, %(severity_text)s,
                 PARSE_JSON(%(body)s), PARSE_JSON(%(attributes)s),
-                OBJECT(
-                    'attributes', PARSE_JSON(%(resource_attributes)s),
-                    'dropped_attributes_count', 0
-                ),
-                OBJECT(
-                    'name', 'midas',
-                    'version', '1.0.0',
-                    'attributes', PARSE_JSON('{{}}'),
-                    'dropped_attributes_count', 0
-                )
+                PARSE_JSON(%(resource_json)s) :: STRUCT<attributes: VARIANT, dropped_attributes_count: INT>,
+                PARSE_JSON(%(scope_json)s) :: STRUCT<name: STRING, version: STRING, attributes: VARIANT, dropped_attributes_count: INT>
             )
         """, {
             "record_id": uuid.uuid4().hex,
@@ -187,9 +187,18 @@ def _write_log(log_entry: dict):
             "severity_text": log_entry["severity_text"],
             "body": json.dumps(log_entry["body"]),
             "attributes": json.dumps(log_entry.get("attributes", {})),
-            "resource_attributes": json.dumps({
-                "service.name": SERVICE_NAME,
-                "deployment.environment": os.environ.get("DATABRICKS_APP_NAME", "local"),
+            "resource_json": json.dumps({
+                "attributes": {
+                    "service.name": SERVICE_NAME,
+                    "deployment.environment": os.environ.get("DATABRICKS_APP_NAME", "local"),
+                },
+                "dropped_attributes_count": 0,
+            }),
+            "scope_json": json.dumps({
+                "name": "midas",
+                "version": "1.0.0",
+                "attributes": {},
+                "dropped_attributes_count": 0,
             }),
         })
         cursor.close()
@@ -316,6 +325,9 @@ def emit_log(message: str, severity: str = "INFO", attributes: dict = None):
 
 def init_telemetry_tables():
     """Create the v2 OTLP spans and logs tables if they don't exist."""
+    if not OTEL_ENABLED:
+        logger.info("Telemetry disabled (OTEL_ENABLED=false)")
+        return False
     conn = _get_connection()
     if conn is None:
         logger.warning("Cannot init telemetry tables — no connection")

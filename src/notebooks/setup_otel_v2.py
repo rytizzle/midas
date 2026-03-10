@@ -11,6 +11,8 @@
 # COMMAND ----------
 
 dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
+dbutils.widgets.text("raw_schema", "otel_raw", "Raw OTel Schema")
+dbutils.widgets.text("observability_schema", "otel_observability", "Observability Schema")
 
 # COMMAND ----------
 
@@ -20,10 +22,10 @@ dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE SCHEMA IF NOT EXISTS ${catalog}.otel_raw
+# MAGIC CREATE SCHEMA IF NOT EXISTS ${catalog}.${raw_schema}
 # MAGIC COMMENT 'Raw OTel v2 OTLP bronze tables - spans, logs, metrics';
 # MAGIC
-# MAGIC CREATE SCHEMA IF NOT EXISTS ${catalog}.otel_observability
+# MAGIC CREATE SCHEMA IF NOT EXISTS ${catalog}.${observability_schema}
 # MAGIC COMMENT 'Processed OTel data - silver cleaned tables and gold analytics';
 
 # COMMAND ----------
@@ -34,7 +36,7 @@ dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.otel_raw.spans (
+# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.${raw_schema}.spans (
 # MAGIC   record_id STRING,
 # MAGIC   time TIMESTAMP,
 # MAGIC   date DATE,
@@ -90,7 +92,7 @@ dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.otel_raw.logs (
+# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.${raw_schema}.logs (
 # MAGIC   record_id STRING,
 # MAGIC   time TIMESTAMP,
 # MAGIC   date DATE,
@@ -126,7 +128,7 @@ dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.otel_raw.metrics (
+# MAGIC CREATE TABLE IF NOT EXISTS ${catalog}.${raw_schema}.metrics (
 # MAGIC   record_id STRING,
 # MAGIC   time TIMESTAMP,
 # MAGIC   date DATE,
@@ -196,8 +198,8 @@ dbutils.widgets.text("catalog", "midas_catalog", "Catalog Name")
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT 'spans' as table_name, count(*) as row_count FROM ${catalog}.otel_raw.spans
+# MAGIC SELECT 'spans' as table_name, count(*) as row_count FROM ${catalog}.${raw_schema}.spans
 # MAGIC UNION ALL
-# MAGIC SELECT 'logs', count(*) FROM ${catalog}.otel_raw.logs
+# MAGIC SELECT 'logs', count(*) FROM ${catalog}.${raw_schema}.logs
 # MAGIC UNION ALL
-# MAGIC SELECT 'metrics', count(*) FROM ${catalog}.otel_raw.metrics
+# MAGIC SELECT 'metrics', count(*) FROM ${catalog}.${raw_schema}.metrics

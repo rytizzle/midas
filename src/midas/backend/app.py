@@ -15,6 +15,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("midas")
 
+# Silence noisy Databricks SQL connector HTTP logs
+logging.getLogger("databricks.sql").setLevel(logging.WARNING)
+
 # Include Midas routes on the apx router (which already has prefix="/api")
 # so they're registered before the static file mount in create_app
 router.include_router(catalog.router)
