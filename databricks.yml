@@ -6,7 +6,7 @@ variables:
   catalog:
     description: "Unity Catalog catalog for Midas to browse"
     default: midas_catalog
-  warehouse_id:
+  otel_warehouse_id:
     description: "SQL warehouse ID for OTel telemetry writes (SP access required)"
   serving_endpoint:
     description: "Foundation Model serving endpoint name"
@@ -97,7 +97,7 @@ targets:
       profile: midas
     variables:
       catalog: midas_catalog
-      warehouse_id: a6505a9626cf9ca7
+      otel_warehouse_id: a6505a9626cf9ca7
       serving_endpoint: databricks-gpt-5-4
       otel_catalog: midas_catalog
       otel_raw_schema: otel_raw

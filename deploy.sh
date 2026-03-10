@@ -22,7 +22,7 @@ get_var() {
 PROFILE=$(databricks bundle validate -t "$TARGET" --output json 2>/dev/null \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['workspace']['profile'])")
 CATALOG=$(get_var catalog)
-WAREHOUSE_ID=$(get_var warehouse_id)
+WAREHOUSE_ID=$(get_var otel_warehouse_id)
 SERVING_ENDPOINT=$(get_var serving_endpoint)
 OTEL_CATALOG=$(get_var otel_catalog)
 OTEL_RAW_SCHEMA=$(get_var otel_raw_schema)
@@ -37,7 +37,7 @@ echo "==> Deploy target: $TARGET"
 echo "    Profile:              $PROFILE"
 echo "    Deployer:             $DEPLOYER_EMAIL"
 echo "    Catalog:              $CATALOG"
-echo "    Warehouse:            $WAREHOUSE_ID"
+echo "    OTel Warehouse:       $WAREHOUSE_ID"
 echo "    Serving Endpoint:     $SERVING_ENDPOINT"
 echo "    OTel Catalog:         $OTEL_CATALOG"
 echo "    OTel Raw Schema:      $OTEL_RAW_SCHEMA"
