@@ -36,7 +36,6 @@ deploy.env
 
 # apx
 .apx/
-.build/
 
 # UI dist folder
 src/midas/__dist__/

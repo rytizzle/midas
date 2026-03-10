@@ -61,8 +61,17 @@ env:
     value: "${APP_NAME}"
 EOF
 
-echo "==> Building..."
-apx build
+# Build if apx is available, otherwise use pre-built .build/
+if command -v apx &>/dev/null; then
+    echo "==> Building..."
+    apx build
+else
+    echo "==> Using pre-built .build/ (apx not installed)"
+    if [ ! -d "$(dirname "$0")/.build" ]; then
+        echo "ERROR: .build/ directory not found. Install apx (pip install databricks-apx) and run 'apx build', or use the pre-built .build/ from git."
+        exit 1
+    fi
+fi
 
 echo "==> Deploying bundle..."
 databricks bundle deploy -t "$TARGET"

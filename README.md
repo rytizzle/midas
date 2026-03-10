@@ -56,20 +56,14 @@ OTel Pipeline (DLT Serverless)
 
 ## Prerequisites
 
-- Python 3.11+
-- Node.js 18+
 - [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html) v0.229+
-- [apx CLI](https://github.com/databricks-solutions/apx) v0.3.8+ (`pip install databricks-apx`)
+- Python 3 (for deploy script helpers)
 - A Databricks workspace with:
   - Unity Catalog enabled
   - A SQL warehouse
   - Foundation Model API enabled (serving endpoint, e.g. `databricks-claude-sonnet-4-5`)
 
-Or just run the setup script to install everything:
-
-```bash
-./setup.sh
-```
+The repo includes a pre-built `.build/` directory so no additional build tools (Node.js, apx) are needed for deployment.
 
 ## Quick start
 
