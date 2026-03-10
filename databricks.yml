@@ -3,9 +3,6 @@ bundle:
 
 variables:
   # ── App Config ──
-  catalog:
-    description: "Unity Catalog catalog for Midas to browse"
-    default: midas_catalog
   otel_warehouse_id:
     description: "SQL warehouse ID for OTel telemetry writes (SP access required)"
   serving_endpoint:
@@ -14,8 +11,7 @@ variables:
 
   # ── OTel Observability Config ──
   otel_catalog:
-    description: "Catalog for OTel tables (defaults to same as catalog)"
-    default: ${var.catalog}
+    description: "Catalog for OTel telemetry tables"
   otel_raw_schema:
     description: "Schema name for raw bronze OTel tables"
     default: otel_raw
@@ -96,7 +92,6 @@ targets:
     workspace:
       profile: midas
     variables:
-      catalog: midas_catalog
       otel_warehouse_id: a6505a9626cf9ca7
       serving_endpoint: databricks-gpt-5-4
       otel_catalog: midas_catalog
@@ -108,6 +103,6 @@ targets:
   #   workspace:
   #     profile: customer-workspace
   #   variables:
-  #     catalog: main
-  #     warehouse_id: xyz789
-  #     serving_endpoint: databricks-claude-sonnet-4-5
+  #     otel_warehouse_id: xyz789
+  #     otel_catalog: my_catalog
+  #     serving_endpoint: databricks-gpt-5-4
