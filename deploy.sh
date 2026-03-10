@@ -30,7 +30,7 @@ APP_NAME="midas"
 
 DEPLOYER_EMAIL=$(databricks current-user me -p "$PROFILE" --output json \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['userName'])")
-SOURCE_PATH="/Workspace/Users/${DEPLOYER_EMAIL}/.bundle/midas/${TARGET}/files/.build"
+SOURCE_PATH="/Workspace/Users/${DEPLOYER_EMAIL}/.bundle/midas/${TARGET}/files/src"
 
 echo "==> Deploy target: $TARGET"
 echo "    Profile:              $PROFILE"
@@ -42,8 +42,8 @@ echo "    OTel Raw Schema:      $OTEL_RAW_SCHEMA"
 echo "    OTel Silver/Gold:     $OTEL_OBSERVABILITY_SCHEMA"
 echo ""
 
-# ── Inject runtime config into app.yml ──
-cat > "$(dirname "$0")/app.yml" <<EOF
+# ── Inject runtime config into src/app.yml ──
+cat > "$(dirname "$0")/src/app.yml" <<EOF
 command: ["uvicorn", "midas.backend.app:app", "--workers", "2"]
 
 env:
@@ -56,18 +56,6 @@ env:
   - name: OTEL_SERVICE_NAME
     value: "${APP_NAME}"
 EOF
-
-# Build if apx is available, otherwise use pre-built .build/
-if command -v apx &>/dev/null; then
-    echo "==> Building..."
-    apx build
-else
-    echo "==> Using pre-built .build/ (apx not installed)"
-    if [ ! -d "$(dirname "$0")/.build" ]; then
-        echo "ERROR: .build/ directory not found. Install apx (pip install databricks-apx) and run 'apx build', or use the pre-built .build/ from git."
-        exit 1
-    fi
-fi
 
 echo "==> Deploying bundle..."
 databricks bundle deploy -t "$TARGET"
@@ -111,7 +99,34 @@ run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_RAW_SCHEMA} TO \`
 run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_OBSERVABILITY_SCHEMA} TO \`${SP_CLIENT_ID}\`"
 echo "    Schema grants applied."
 
+echo "==> Ensuring app is running..."
+APP_STATE=$(databricks api get "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+if [ "$APP_STATE" != "RUNNING" ] && [ "$APP_STATE" != "ACTIVE" ]; then
+    echo "    App compute is $APP_STATE — starting..."
+    databricks apps start "$APP_NAME" -p "$PROFILE" --no-wait
+    echo "    Waiting for app compute to start..."
+    for i in $(seq 1 30); do
+        sleep 10
+        APP_STATE=$(databricks api get "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+        echo "    [$i/30] State: $APP_STATE"
+        if [ "$APP_STATE" = "RUNNING" ] || [ "$APP_STATE" = "ACTIVE" ]; then
+            break
+        fi
+    done
+    if [ "$APP_STATE" != "RUNNING" ] && [ "$APP_STATE" != "ACTIVE" ]; then
+        echo "    WARNING: App not ready after 5 min (state: $APP_STATE). Attempting deploy anyway..."
+    fi
+else
+    echo "    App compute is $APP_STATE — ready."
+fi
+
 echo "==> Deploying app code..."
 databricks apps deploy "$APP_NAME" --source-code-path "$SOURCE_PATH" -p "$PROFILE"
 
+APP_URL=$(databricks api get "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('url',''))" 2>/dev/null || echo "unknown")
+
 echo "==> Done!"
+echo "    App URL: $APP_URL"
