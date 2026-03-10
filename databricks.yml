@@ -10,7 +10,7 @@ variables:
     description: "SQL warehouse ID for OTel telemetry writes (SP access required)"
   serving_endpoint:
     description: "Foundation Model serving endpoint name"
-    default: databricks-claude-sonnet-4-5
+    default: databricks-gpt-5-4
 
   # ── OTel Observability Config ──
   otel_catalog:
@@ -98,7 +98,7 @@ targets:
     variables:
       catalog: midas_catalog
       warehouse_id: a6505a9626cf9ca7
-      serving_endpoint: databricks-claude-sonnet-4-5
+      serving_endpoint: databricks-gpt-5-4
       otel_catalog: midas_catalog
       otel_raw_schema: otel_raw
       otel_observability_schema: otel_observability

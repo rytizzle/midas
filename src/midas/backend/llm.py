@@ -29,7 +29,7 @@ def generate_table_metadata(
     row_count: int,
     user_context: str = "",
 ) -> dict:
-    model = os.environ.get("SERVING_ENDPOINT", "databricks-claude-sonnet-4-5")
+    model = os.environ.get("SERVING_ENDPOINT", "databricks-gpt-5-4")
     client = get_llm_client()
 
     columns_info = "\n".join(
