@@ -22,6 +22,9 @@ resources:
       name: "midas"
       description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
       source_code_path: ./.build
+      permissions:
+        - user_name: ryan.tom@databricks.com
+          level: CAN_MANAGE
 
   schemas:
     otel_raw_schema:
@@ -77,5 +80,4 @@ resources:
 
 targets:
   dev:
-    mode: development
     default: true

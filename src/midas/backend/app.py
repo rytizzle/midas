@@ -15,15 +15,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("midas")
 
-app = create_app(routers=[router])
+# Include Midas routes on the apx router (which already has prefix="/api")
+# so they're registered before the static file mount in create_app
+router.include_router(catalog.router)
+router.include_router(profiling.router)
+router.include_router(metadata.router)
+router.include_router(apply.router)
+router.include_router(documents.router)
+router.include_router(genie.router)
 
-# Include Midas route routers under /api prefix
-app.include_router(catalog.router, prefix="/api")
-app.include_router(profiling.router, prefix="/api")
-app.include_router(metadata.router, prefix="/api")
-app.include_router(apply.router, prefix="/api")
-app.include_router(documents.router, prefix="/api")
-app.include_router(genie.router, prefix="/api")
+app = create_app(routers=[router])
 
 
 @app.on_event("startup")

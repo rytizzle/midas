@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter
 from pydantic import BaseModel
 from databricks.sdk import WorkspaceClient
-from ..config import get_config
+from ..core.dependencies import Dependencies
 from ..telemetry import trace_span
 
 logger = logging.getLogger("midas.genie")
@@ -12,16 +12,10 @@ router = APIRouter(prefix="/genie", tags=["genie"])
 _room_links: dict[str, dict] = {}
 
 
-def _get_ws_client() -> WorkspaceClient:
-    cfg = get_config()
-    return WorkspaceClient(config=cfg)
-
-
 @router.get("/rooms")
-def list_rooms():
+def list_rooms(user_ws: Dependencies.UserClient):
     with trace_span("sdk.genie.list_spaces", route="genie"):
-        ws = _get_ws_client()
-        resp = ws.genie.list_spaces()
+        resp = user_ws.genie.list_spaces()
         rooms = []
         for s in (resp.spaces or []):
             link = _room_links.get(s.space_id)
@@ -37,8 +31,8 @@ def list_rooms():
 
 
 @router.get("/rooms/{space_id}/tables")
-def get_room_tables(space_id: str):
-    ws = _get_ws_client()
+def get_room_tables(space_id: str, user_ws: Dependencies.UserClient):
+    ws = user_ws
 
     with trace_span("sdk.genie.get_space", route="genie", metadata={"space_id": space_id}):
         space = ws.genie.get_space(space_id, include_serialized_space=True)

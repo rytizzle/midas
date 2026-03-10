@@ -153,12 +153,41 @@ export function useUndo_changes_api_apply_undo_post(options?: {
         ...options?.mutation
     });
 }
-export const list_catalogs_api_catalog_catalogs_get = async (options?: RequestInit): Promise<{
+export interface List_catalogs_api_catalog_catalogs_getParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const list_catalogs_api_catalog_catalogs_get = async (params?: List_catalogs_api_catalog_catalogs_getParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/catalog/catalogs", {
         ...options,
-        method: "GET"
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
     });
     if (!res.ok) {
         const body = await res.text();
@@ -174,34 +203,37 @@ export const list_catalogs_api_catalog_catalogs_get = async (options?: RequestIn
         data: await res.json()
     };
 };
-export const list_catalogs_api_catalog_catalogs_getKey = ()=>{
+export const list_catalogs_api_catalog_catalogs_getKey = (params?: List_catalogs_api_catalog_catalogs_getParams)=>{
     return [
-        "/api/catalog/catalogs"
+        "/api/catalog/catalogs",
+        params
     ] as const;
 };
 export function useList_catalogs_api_catalog_catalogs_get<TData = {
     data: unknown;
 }>(options?: {
+    params?: List_catalogs_api_catalog_catalogs_getParams;
     query?: Omit<UseQueryOptions<{
         data: unknown;
     }, ApiError, TData>, "queryKey" | "queryFn">;
 }) {
     return useQuery({
-        queryKey: list_catalogs_api_catalog_catalogs_getKey(),
-        queryFn: ()=>list_catalogs_api_catalog_catalogs_get(),
+        queryKey: list_catalogs_api_catalog_catalogs_getKey(options?.params),
+        queryFn: ()=>list_catalogs_api_catalog_catalogs_get(options?.params),
         ...options?.query
     });
 }
 export function useList_catalogs_api_catalog_catalogs_getSuspense<TData = {
     data: unknown;
 }>(options?: {
+    params?: List_catalogs_api_catalog_catalogs_getParams;
     query?: Omit<UseSuspenseQueryOptions<{
         data: unknown;
     }, ApiError, TData>, "queryKey" | "queryFn">;
 }) {
     return useSuspenseQuery({
-        queryKey: list_catalogs_api_catalog_catalogs_getKey(),
-        queryFn: ()=>list_catalogs_api_catalog_catalogs_get(),
+        queryKey: list_catalogs_api_catalog_catalogs_getKey(options?.params),
+        queryFn: ()=>list_catalogs_api_catalog_catalogs_get(options?.params),
         ...options?.query
     });
 }
@@ -243,6 +275,12 @@ export function useCheck_permissions_api_catalog_check_permissions_post(options?
 }
 export interface List_schemas_api_catalog_schemas_getParams {
     catalog: string;
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
 }
 export const list_schemas_api_catalog_schemas_get = async (params: List_schemas_api_catalog_schemas_getParams, options?: RequestInit): Promise<{
     data: unknown;
@@ -253,7 +291,28 @@ export const list_schemas_api_catalog_schemas_get = async (params: List_schemas_
     const url = queryString ? `/api/catalog/schemas?${queryString}` : "/api/catalog/schemas";
     const res = await fetch(url, {
         ...options,
-        method: "GET"
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
     });
     if (!res.ok) {
         const body = await res.text();
@@ -306,6 +365,12 @@ export function useList_schemas_api_catalog_schemas_getSuspense<TData = {
 export interface List_tables_api_catalog_tables_getParams {
     catalog: string;
     schema: string;
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
 }
 export const list_tables_api_catalog_tables_get = async (params: List_tables_api_catalog_tables_getParams, options?: RequestInit): Promise<{
     data: unknown;
@@ -317,7 +382,28 @@ export const list_tables_api_catalog_tables_get = async (params: List_tables_api
     const url = queryString ? `/api/catalog/tables?${queryString}` : "/api/catalog/tables";
     const res = await fetch(url, {
         ...options,
-        method: "GET"
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
     });
     if (!res.ok) {
         const body = await res.text();
@@ -522,12 +608,41 @@ export function useExtract_url_api_documents_extract_url_post(options?: {
         ...options?.mutation
     });
 }
-export const list_rooms_api_genie_rooms_get = async (options?: RequestInit): Promise<{
+export interface List_rooms_api_genie_rooms_getParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const list_rooms_api_genie_rooms_get = async (params?: List_rooms_api_genie_rooms_getParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/genie/rooms", {
         ...options,
-        method: "GET"
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
     });
     if (!res.ok) {
         const body = await res.text();
@@ -543,34 +658,37 @@ export const list_rooms_api_genie_rooms_get = async (options?: RequestInit): Pro
         data: await res.json()
     };
 };
-export const list_rooms_api_genie_rooms_getKey = ()=>{
+export const list_rooms_api_genie_rooms_getKey = (params?: List_rooms_api_genie_rooms_getParams)=>{
     return [
-        "/api/genie/rooms"
+        "/api/genie/rooms",
+        params
     ] as const;
 };
 export function useList_rooms_api_genie_rooms_get<TData = {
     data: unknown;
 }>(options?: {
+    params?: List_rooms_api_genie_rooms_getParams;
     query?: Omit<UseQueryOptions<{
         data: unknown;
     }, ApiError, TData>, "queryKey" | "queryFn">;
 }) {
     return useQuery({
-        queryKey: list_rooms_api_genie_rooms_getKey(),
-        queryFn: ()=>list_rooms_api_genie_rooms_get(),
+        queryKey: list_rooms_api_genie_rooms_getKey(options?.params),
+        queryFn: ()=>list_rooms_api_genie_rooms_get(options?.params),
         ...options?.query
     });
 }
 export function useList_rooms_api_genie_rooms_getSuspense<TData = {
     data: unknown;
 }>(options?: {
+    params?: List_rooms_api_genie_rooms_getParams;
     query?: Omit<UseSuspenseQueryOptions<{
         data: unknown;
     }, ApiError, TData>, "queryKey" | "queryFn">;
 }) {
     return useSuspenseQuery({
-        queryKey: list_rooms_api_genie_rooms_getKey(),
-        queryFn: ()=>list_rooms_api_genie_rooms_get(),
+        queryKey: list_rooms_api_genie_rooms_getKey(options?.params),
+        queryFn: ()=>list_rooms_api_genie_rooms_get(options?.params),
         ...options?.query
     });
 }
@@ -618,13 +736,40 @@ export function useLink_room_api_genie_rooms__space_id__link_post(options?: {
 }
 export interface Get_room_tables_api_genie_rooms__space_id__tables_getParams {
     space_id: string;
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
 }
 export const get_room_tables_api_genie_rooms__space_id__tables_get = async (params: Get_room_tables_api_genie_rooms__space_id__tables_getParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch(`/api/genie/rooms/${params.space_id}/tables`, {
         ...options,
-        method: "GET"
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
     });
     if (!res.ok) {
         const body = await res.text();

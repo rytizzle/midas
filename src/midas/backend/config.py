@@ -15,7 +15,8 @@ _warehouse_id = None
 def get_config() -> Config:
     global _cfg
     if _cfg is None:
-        _cfg = Config()
+        profile = os.environ.get("DATABRICKS_CONFIG_PROFILE")
+        _cfg = Config(profile=profile) if profile else Config()
     return _cfg
 
 
@@ -36,7 +37,7 @@ def get_sql_connection():
     cfg = get_config()
     wh_id = _resolve_warehouse_id()
     return sql.connect(
-        server_hostname=cfg.host,
+        server_hostname=cfg.host.replace("https://", ""),
         http_path=f"/sql/1.0/warehouses/{wh_id}",
         credentials_provider=lambda: cfg.authenticate,
     )
