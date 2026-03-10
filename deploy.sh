@@ -85,15 +85,24 @@ databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
     \"catalog.tables:read\"
   ],
   \"resources\": [
-    {\"name\": \"sql-warehouse\", \"sql_warehouse\": {\"id\": \"${WAREHOUSE_ID}\", \"permission\": \"CAN_USE\"}},
     {\"name\": \"serving-endpoint\", \"serving_endpoint\": {\"name\": \"${SERVING_ENDPOINT}\", \"permission\": \"CAN_QUERY\"}}
   ]
 }"
 
-echo "==> Granting app SP permissions on OTel schemas..."
+echo "==> Granting app SP permissions for OTel..."
 SP_CLIENT_ID=$(databricks api get "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['service_principal_client_id'])")
 echo "    SP Client ID: $SP_CLIENT_ID"
+
+# Grant SP CAN_USE on the OTel warehouse (direct permission, not an app resource)
+databricks api patch "/api/2.0/permissions/sql/warehouses/${WAREHOUSE_ID}" -p "$PROFILE" --json "{
+  \"access_control_list\": [
+    {\"service_principal_name\": \"${SP_CLIENT_ID}\", \"permission_level\": \"CAN_USE\"}
+  ]
+}"
+echo "    Warehouse CAN_USE granted."
+
+# Grant SP catalog/schema access for OTel writes
 run_sql() {
     local SQL_JSON
     SQL_JSON=$(python3 -c "import json; print(json.dumps({'warehouse_id': '${WAREHOUSE_ID}', 'statement': '$1'}))")
@@ -102,7 +111,7 @@ run_sql() {
 run_sql "GRANT USE CATALOG ON CATALOG ${OTEL_CATALOG} TO \`${SP_CLIENT_ID}\`"
 run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_RAW_SCHEMA} TO \`${SP_CLIENT_ID}\`"
 run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_OBSERVABILITY_SCHEMA} TO \`${SP_CLIENT_ID}\`"
-echo "    Grants applied."
+echo "    Schema grants applied."
 
 echo "==> Deploying app code..."
 databricks apps deploy "$APP_NAME" --source-code-path "$SOURCE_PATH" -p "$PROFILE"
