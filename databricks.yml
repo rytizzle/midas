@@ -7,15 +7,12 @@ variables:
     description: "Unity Catalog catalog for Midas to browse"
     default: midas_catalog
   warehouse_id:
-    description: "SQL warehouse ID for telemetry writes and permission checks"
+    description: "SQL warehouse ID for OTel telemetry writes (SP access required)"
   serving_endpoint:
     description: "Foundation Model serving endpoint name"
     default: databricks-claude-sonnet-4-5
 
   # ── OTel Observability Config ──
-  otel_enabled:
-    description: "Enable OTel telemetry writes (true/false)"
-    default: "true"
   otel_catalog:
     description: "Catalog for OTel tables (defaults to same as catalog)"
     default: ${var.catalog}
@@ -114,4 +111,3 @@ targets:
   #     catalog: main
   #     warehouse_id: xyz789
   #     serving_endpoint: databricks-claude-sonnet-4-5
-  #     otel_enabled: "false"

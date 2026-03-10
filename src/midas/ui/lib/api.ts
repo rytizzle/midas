@@ -15,6 +15,7 @@ export class ApiError extends Error {
 export interface ApplyRequest {
     changes: Record<string, unknown>;
     current_metadata: Record<string, unknown>;
+    warehouse_id: string;
 }
 export interface Body_extract_pdf_api_documents_extract_pdf_post {
     file: string;
@@ -43,12 +44,15 @@ export interface Name {
 }
 export interface PermissionCheckRequest {
     tables: string[];
+    warehouse_id: string;
 }
 export interface ProfileRequest {
     tables: string[];
+    warehouse_id: string;
 }
 export interface UndoRequest {
     tables: string[];
+    warehouse_id: string;
 }
 export interface UrlRequest {
     url: string;
@@ -450,6 +454,90 @@ export function useList_tables_api_catalog_tables_getSuspense<TData = {
     return useSuspenseQuery({
         queryKey: list_tables_api_catalog_tables_getKey(options.params),
         queryFn: ()=>list_tables_api_catalog_tables_get(options.params),
+        ...options?.query
+    });
+}
+export interface List_warehouses_api_catalog_warehouses_getParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const list_warehouses_api_catalog_warehouses_get = async (params?: List_warehouses_api_catalog_warehouses_getParams, options?: RequestInit): Promise<{
+    data: unknown;
+}> =>{
+    const res = await fetch("/api/catalog/warehouses", {
+        ...options,
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const list_warehouses_api_catalog_warehouses_getKey = (params?: List_warehouses_api_catalog_warehouses_getParams)=>{
+    return [
+        "/api/catalog/warehouses",
+        params
+    ] as const;
+};
+export function useList_warehouses_api_catalog_warehouses_get<TData = {
+    data: unknown;
+}>(options?: {
+    params?: List_warehouses_api_catalog_warehouses_getParams;
+    query?: Omit<UseQueryOptions<{
+        data: unknown;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: list_warehouses_api_catalog_warehouses_getKey(options?.params),
+        queryFn: ()=>list_warehouses_api_catalog_warehouses_get(options?.params),
+        ...options?.query
+    });
+}
+export function useList_warehouses_api_catalog_warehouses_getSuspense<TData = {
+    data: unknown;
+}>(options?: {
+    params?: List_warehouses_api_catalog_warehouses_getParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: unknown;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: list_warehouses_api_catalog_warehouses_getKey(options?.params),
+        queryFn: ()=>list_warehouses_api_catalog_warehouses_get(options?.params),
         ...options?.query
     });
 }

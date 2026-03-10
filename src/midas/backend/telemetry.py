@@ -20,9 +20,9 @@ from typing import Optional
 logger = logging.getLogger("midas.telemetry")
 
 # Configuration — set via env vars or defaults
-OTEL_ENABLED = os.environ.get("OTEL_ENABLED", "true").lower() == "true"
 OTEL_CATALOG = os.environ.get("OTEL_CATALOG", "midas_catalog")
 OTEL_SCHEMA = os.environ.get("OTEL_SCHEMA", "otel_raw")
+OTEL_WAREHOUSE_ID = os.environ.get("OTEL_WAREHOUSE_ID", "")
 SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "midas-app")
 
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -56,21 +56,14 @@ def _get_connection():
             from .config import get_config
             from databricks import sql as dbsql
 
-            cfg = get_config()
-            # Find a warehouse
-            from databricks.sdk import WorkspaceClient
-            ws = WorkspaceClient(config=cfg)
-            wh_id = None
-            for wh in ws.warehouses.list():
-                wh_id = wh.id
-                break
-            if not wh_id:
-                logger.warning("No SQL warehouse found for telemetry")
+            if not OTEL_WAREHOUSE_ID:
+                logger.warning("OTEL_WAREHOUSE_ID not set — telemetry disabled")
                 return None
 
+            cfg = get_config()
             _conn = dbsql.connect(
                 server_hostname=cfg.host,
-                http_path=f"/sql/1.0/warehouses/{wh_id}",
+                http_path=f"/sql/1.0/warehouses/{OTEL_WAREHOUSE_ID}",
                 credentials_provider=lambda: cfg.authenticate,
             )
             _conn_created_at = time.monotonic()
@@ -84,8 +77,6 @@ def _get_connection():
 
 def _write_span(span: dict):
     """Write a single span to the v2 OTLP spans table."""
-    if not OTEL_ENABLED:
-        return
     conn = _get_connection()
     if conn is None:
         return
@@ -152,8 +143,6 @@ def _write_span(span: dict):
 
 def _write_log(log_entry: dict):
     """Write a single log record to the v2 OTLP logs table."""
-    if not OTEL_ENABLED:
-        return
     conn = _get_connection()
     if conn is None:
         return
@@ -325,9 +314,6 @@ def emit_log(message: str, severity: str = "INFO", attributes: dict = None):
 
 def init_telemetry_tables():
     """Create the v2 OTLP spans and logs tables if they don't exist."""
-    if not OTEL_ENABLED:
-        logger.info("Telemetry disabled (OTEL_ENABLED=false)")
-        return False
     conn = _get_connection()
     if conn is None:
         logger.warning("Cannot init telemetry tables — no connection")
