@@ -1,0 +1,89 @@
+import logging
+from fastapi import APIRouter, Query
+from pydantic import BaseModel
+from databricks.sdk import WorkspaceClient
+from ..config import get_config, get_sql_connection
+from ..telemetry import trace_span
+
+logger = logging.getLogger("midas.catalog")
+router = APIRouter(prefix="/catalog", tags=["catalog"])
+
+
+def _get_ws_client() -> WorkspaceClient:
+    cfg = get_config()
+    return WorkspaceClient(config=cfg)
+
+
+@router.get("/catalogs")
+def list_catalogs():
+    with trace_span("sdk.catalogs.list", route="catalog"):
+        ws = _get_ws_client()
+        catalogs = []
+        for c in ws.catalogs.list():
+            if c.name and not c.name.startswith("__"):
+                catalogs.append({"name": c.name, "comment": c.comment or ""})
+    return catalogs
+
+
+@router.get("/schemas")
+def list_schemas(catalog: str = Query(...)):
+    with trace_span("sdk.schemas.list", route="catalog", metadata={"catalog": catalog}):
+        ws = _get_ws_client()
+        schemas = []
+        for s in ws.schemas.list(catalog_name=catalog):
+            if s.name and s.name not in ("information_schema",):
+                schemas.append({"name": s.name, "comment": s.comment or ""})
+    return schemas
+
+
+@router.get("/tables")
+def list_tables(catalog: str = Query(...), schema: str = Query(...)):
+    with trace_span("sdk.tables.list", route="catalog", metadata={"catalog": catalog, "schema": schema}):
+        ws = _get_ws_client()
+        tables = []
+        for t in ws.tables.list(catalog_name=catalog, schema_name=schema):
+            columns = []
+            if t.columns:
+                for col in t.columns:
+                    columns.append({
+                        "name": col.name,
+                        "type": col.type_text or str(col.type_name or ""),
+                        "comment": col.comment or "",
+                    })
+            tables.append({
+                "name": t.name,
+                "full_name": t.full_name,
+                "table_type": (t.table_type.value if t.table_type else "TABLE"),
+                "comment": t.comment or "",
+                "columns": columns,
+                "column_count": len(columns),
+            })
+    return tables
+
+
+class PermissionCheckRequest(BaseModel):
+    tables: list[str]
+
+
+@router.post("/check-permissions")
+def check_permissions(req: PermissionCheckRequest):
+    results = {}
+    with trace_span("sql.check_permissions", route="catalog"):
+        conn = get_sql_connection()
+        try:
+            cursor = conn.cursor()
+            for fqn in req.tables:
+                try:
+                    cursor.execute(f"SHOW GRANTS ON TABLE {fqn}")
+                    grants = cursor.fetchall()
+                    has_modify = any(
+                        "MODIFY" in str(row) or "ALL_PRIVILEGES" in str(row) or "ALL PRIVILEGES" in str(row)
+                        for row in grants
+                    )
+                    results[fqn] = {"can_modify": has_modify}
+                except Exception as e:
+                    results[fqn] = {"can_modify": False, "error": str(e)}
+            cursor.close()
+        finally:
+            conn.close()
+    return results

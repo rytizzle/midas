@@ -1,6 +1,13 @@
 bundle:
   name: midas
 
+workspace:
+  profile: midas
+
+variables:
+  catalog:
+    default: midas_catalog
+
 sync:
   include:
     - .build
@@ -13,8 +20,60 @@ resources:
   apps:
     midas-app:
       name: "midas"
-      description: "midas created with apx"
+      description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
       source_code_path: ./.build
+
+  schemas:
+    otel_raw_schema:
+      catalog_name: ${var.catalog}
+      name: otel_raw
+      comment: "Raw OTel v2 OTLP bronze tables - spans, logs, metrics"
+
+    otel_observability_schema:
+      catalog_name: ${var.catalog}
+      name: otel_observability
+      comment: "Processed OTel data - silver cleaned tables and gold analytics"
+
+  pipelines:
+    otel_pipeline:
+      name: "midas-otel-observability"
+      catalog: ${var.catalog}
+      target: otel_observability
+      serverless: true
+      channel: PREVIEW
+      continuous: false
+      libraries:
+        - notebook:
+            path: ./src/notebooks/dlt_pipeline.py
+      configuration:
+        otel.source.catalog: ${var.catalog}
+        otel.source.schema: otel_raw
+
+  jobs:
+    otel_setup:
+      name: "midas-otel-setup-bronze"
+      tasks:
+        - task_key: setup_otel_v2
+          notebook_task:
+            notebook_path: ./src/notebooks/setup_otel_v2.py
+            base_parameters:
+              catalog: ${var.catalog}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
+
+    otel_pipeline_schedule:
+      name: "midas-otel-scheduled"
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"
+        timezone_id: "America/Los_Angeles"
+      tasks:
+        - task_key: run_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.otel_pipeline.id}
 
 targets:
   dev:
