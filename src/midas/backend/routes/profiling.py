@@ -10,6 +10,7 @@ router = APIRouter(prefix="/profiling", tags=["profiling"])
 
 class ProfileRequest(BaseModel):
     tables: list[str]
+    warehouse_id: str
 
 
 def _escape_ident(name: str) -> str:
@@ -81,7 +82,7 @@ def _profile_table(cursor, table_fqn: str) -> dict:
 @router.post("/profile")
 def profile_tables(req: ProfileRequest):
     with trace_span("sql.connect", route="profiling"):
-        conn = get_sql_connection()
+        conn = get_sql_connection(req.warehouse_id)
 
     results = {}
     try:

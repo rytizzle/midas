@@ -10,6 +10,20 @@ logger = logging.getLogger("midas.catalog")
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
 
+@router.get("/warehouses")
+def list_warehouses(user_ws: Dependencies.UserClient):
+    with trace_span("sdk.warehouses.list", route="catalog"):
+        warehouses = []
+        for wh in user_ws.warehouses.list():
+            warehouses.append({
+                "id": wh.id,
+                "name": wh.name,
+                "state": wh.state.value if wh.state else "UNKNOWN",
+                "size": wh.cluster_size or "",
+            })
+    return warehouses
+
+
 @router.get("/catalogs")
 def list_catalogs(user_ws: Dependencies.UserClient):
     with trace_span("sdk.catalogs.list", route="catalog"):
@@ -56,13 +70,14 @@ def list_tables(user_ws: Dependencies.UserClient, catalog: str = Query(...), sch
 
 class PermissionCheckRequest(BaseModel):
     tables: list[str]
+    warehouse_id: str
 
 
 @router.post("/check-permissions")
 def check_permissions(req: PermissionCheckRequest):
     results = {}
     with trace_span("sql.check_permissions", route="catalog"):
-        conn = get_sql_connection()
+        conn = get_sql_connection(req.warehouse_id)
         try:
             cursor = conn.cursor()
             for fqn in req.tables:

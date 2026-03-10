@@ -3,11 +3,12 @@ import { api, type TableInfo, type GeneratedMetadata, type ApplyResult } from "@
 import { CheckCircle2, XCircle, Loader2, Undo2, AlertTriangle, Rocket } from "lucide-react";
 
 export default function ApplyChanges({
-  tables, metadata, onBack,
+  tables, metadata, onBack, warehouseId,
 }: {
   tables: TableInfo[];
   metadata: Record<string, GeneratedMetadata>;
   onBack: () => void;
+  warehouseId: string;
 }) {
   const [results, setResults] = useState<ApplyResult[] | null>(null);
   const [undoResults, setUndoResults] = useState<ApplyResult[] | null>(null);
@@ -37,7 +38,7 @@ export default function ApplyChanges({
         currentMeta[fqn] = { comment: t?.comment || "", columns: colMeta };
       }
 
-      const res = await api.applyChanges(changes, currentMeta);
+      const res = await api.applyChanges(changes, currentMeta, warehouseId);
       setResults(res);
     } catch (e) { console.error(e); }
     finally { setApplying(false); }
@@ -46,7 +47,7 @@ export default function ApplyChanges({
   const handleUndo = async () => {
     setUndoing(true);
     try {
-      const res = await api.undoChanges(Object.keys(metadata));
+      const res = await api.undoChanges(Object.keys(metadata), warehouseId);
       setUndoResults(res);
     } catch (e) { console.error(e); }
     finally { setUndoing(false); }

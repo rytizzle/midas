@@ -80,14 +80,22 @@ export interface PermissionResult {
   error?: string;
 }
 
+export interface WarehouseInfo {
+  id: string;
+  name: string;
+  state: string;
+  size: string;
+}
+
 export const api = {
+  getWarehouses: () => request<WarehouseInfo[]>("/api/catalog/warehouses"),
   getGenieRooms: () => request<GenieRoom[]>("/api/genie/rooms"),
   getGenieRoomTables: (spaceId: string) =>
     request<GenieRoomDetail>(`/api/genie/rooms/${encodeURIComponent(spaceId)}/tables`),
-  checkPermissions: (tables: string[]) =>
+  checkPermissions: (tables: string[], warehouseId: string) =>
     request<Record<string, PermissionResult>>("/api/catalog/check-permissions", {
       method: "POST",
-      body: JSON.stringify({ tables }),
+      body: JSON.stringify({ tables, warehouse_id: warehouseId }),
     }),
   extractPdf: async (file: File): Promise<ExtractPdfResult> => {
     const form = new FormData();
@@ -114,10 +122,10 @@ export const api = {
     request<TableInfo[]>(
       `/api/catalog/tables?catalog=${encodeURIComponent(catalog)}&schema=${encodeURIComponent(schema)}`
     ),
-  profileTables: (tables: string[]) =>
+  profileTables: (tables: string[], warehouseId: string) =>
     request<Record<string, ProfileResult>>("/api/profiling/profile", {
       method: "POST",
-      body: JSON.stringify({ tables }),
+      body: JSON.stringify({ tables, warehouse_id: warehouseId }),
     }),
   generateMetadata: (tables: Record<string, ProfileResult>, context: { blurb: string; docs: string }) =>
     request<Record<string, GeneratedMetadata>>("/api/metadata/generate", {
@@ -126,15 +134,16 @@ export const api = {
     }),
   applyChanges: (
     changes: Record<string, { table_comment: string; columns: Record<string, { description: string }> }>,
-    currentMetadata: Record<string, { comment: string; columns: Record<string, { comment: string }> }>
+    currentMetadata: Record<string, { comment: string; columns: Record<string, { comment: string }> }>,
+    warehouseId: string
   ) =>
     request<ApplyResult[]>("/api/apply/execute", {
       method: "POST",
-      body: JSON.stringify({ changes, current_metadata: currentMetadata }),
+      body: JSON.stringify({ changes, current_metadata: currentMetadata, warehouse_id: warehouseId }),
     }),
-  undoChanges: (tables: string[]) =>
+  undoChanges: (tables: string[], warehouseId: string) =>
     request<ApplyResult[]>("/api/apply/undo", {
       method: "POST",
-      body: JSON.stringify({ tables }),
+      body: JSON.stringify({ tables, warehouse_id: warehouseId }),
     }),
 };

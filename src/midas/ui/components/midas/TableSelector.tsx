@@ -29,10 +29,12 @@ export default function TableSelector({
   selected,
   onSelect,
   onNext,
+  warehouseId,
 }: {
   selected: TableInfo[];
   onSelect: (tables: TableInfo[]) => void;
   onNext: () => void;
+  warehouseId: string;
 }) {
   const [mode, setMode] = useState<SourceMode>("catalog");
   const [catalogs, setCatalogs] = useState<CatalogInfo[]>([]);
@@ -109,7 +111,7 @@ export default function TableSelector({
   const runPermissionCheck = async () => {
     setPermChecking(true);
     try {
-      const result = await api.checkPermissions(selected.map((t) => t.full_name));
+      const result = await api.checkPermissions(selected.map((t) => t.full_name), warehouseId);
       setPermissions(result);
     } catch (e) {
       console.error(e);

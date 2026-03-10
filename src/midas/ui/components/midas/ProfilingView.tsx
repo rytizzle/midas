@@ -3,7 +3,7 @@ import { api, type TableInfo, type ProfileResult, type GeneratedMetadata } from 
 import { BarChart3, Loader2, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 
 export default function ProfilingView({
-  tables, context, profiles, onProfiles, metadata, onMetadata, onNext, onBack,
+  tables, context, profiles, onProfiles, metadata, onMetadata, onNext, onBack, warehouseId,
 }: {
   tables: TableInfo[];
   context: { blurb: string; docs: string };
@@ -13,6 +13,7 @@ export default function ProfilingView({
   onMetadata: (m: Record<string, GeneratedMetadata>) => void;
   onNext: () => void;
   onBack: () => void;
+  warehouseId: string;
 }) {
   const [profiling, setProfiling] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -21,7 +22,7 @@ export default function ProfilingView({
   const handleProfile = async () => {
     setProfiling(true);
     try {
-      const result = await api.profileTables(tables.map((t) => t.full_name));
+      const result = await api.profileTables(tables.map((t) => t.full_name), warehouseId);
       onProfiles(result);
     } catch (e) { console.error(e); }
     finally { setProfiling(false); }

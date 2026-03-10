@@ -23,10 +23,12 @@ def _escape_comment(text: str) -> str:
 class ApplyRequest(BaseModel):
     changes: dict
     current_metadata: dict
+    warehouse_id: str
 
 
 class UndoRequest(BaseModel):
     tables: list[str]
+    warehouse_id: str
 
 
 @router.post("/execute")
@@ -36,7 +38,7 @@ def apply_changes(req: ApplyRequest):
 
     try:
         with trace_span("sql.connect", route="apply"):
-            conn = get_sql_connection()
+            conn = get_sql_connection(req.warehouse_id)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"SQL connect failed: {e}"})
 
@@ -79,7 +81,7 @@ def undo_changes(req: UndoRequest):
     if not _previous_state:
         return {"error": "No previous state to restore"}
 
-    conn = get_sql_connection()
+    conn = get_sql_connection(req.warehouse_id)
     results = []
     try:
         with conn.cursor() as cursor:
