@@ -18,6 +18,9 @@ variables:
   otel_observability_schema:
     description: "Schema name for processed silver/gold OTel tables"
     default: otel_observability
+  otel_enabled:
+    description: "Enable OTel telemetry collection (true/false)"
+    default: "false"
 
 sync:
   include:
@@ -97,6 +100,7 @@ targets:
       otel_catalog: midas_catalog
       otel_raw_schema: otel_raw
       otel_observability_schema: otel_observability
+      otel_enabled: "true"
 
   # Example: customer or second workspace
   # prod:
@@ -106,3 +110,4 @@ targets:
   #     otel_warehouse_id: xyz789
   #     otel_catalog: my_catalog
   #     serving_endpoint: databricks-gpt-5-4
+  #     otel_enabled: "false"

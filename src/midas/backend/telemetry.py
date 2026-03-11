@@ -19,6 +19,9 @@ from typing import Optional
 
 logger = logging.getLogger("midas.telemetry")
 
+# Master toggle — set OTEL_ENABLED=true to enable telemetry, anything else disables it
+OTEL_ENABLED = os.environ.get("OTEL_ENABLED", "false").lower() == "true"
+
 # Configuration — set via env vars or defaults
 OTEL_CATALOG = os.environ.get("OTEL_CATALOG", "midas_catalog")
 OTEL_SCHEMA = os.environ.get("OTEL_SCHEMA", "otel_raw")
@@ -37,6 +40,9 @@ _CONN_MAX_AGE = 45 * 60  # 45 minutes
 def _get_connection():
     """Get or create a SQL connection, refreshing if stale."""
     global _conn, _conn_created_at
+
+    if not OTEL_ENABLED:
+        return None
 
     if _conn is not None and (time.monotonic() - _conn_created_at) < _CONN_MAX_AGE:
         return _conn
@@ -226,6 +232,10 @@ def _current_parent_id() -> Optional[str]:
 @contextmanager
 def trace_span(operation: str, route: str = None, metadata: dict = None):
     """Context manager that records a span in OTel v2 format."""
+    if not OTEL_ENABLED:
+        yield None
+        return
+
     span_id = uuid.uuid4().hex[:16]
     trace_id = _current_trace_id()
     parent_id = _current_parent_id()
@@ -296,6 +306,9 @@ def traced(operation: str = None):
 
 def emit_log(message: str, severity: str = "INFO", attributes: dict = None):
     """Emit a log record in OTel v2 format."""
+    if not OTEL_ENABLED:
+        return
+
     now = datetime.now(timezone.utc)
     sev_map = {"DEBUG": "5", "INFO": "9", "WARN": "13", "ERROR": "17", "FATAL": "21"}
 
@@ -314,6 +327,10 @@ def emit_log(message: str, severity: str = "INFO", attributes: dict = None):
 
 def init_telemetry_tables():
     """Create the v2 OTLP spans and logs tables if they don't exist."""
+    if not OTEL_ENABLED:
+        logger.info("OTel disabled — skipping table init")
+        return False
+
     conn = _get_connection()
     if conn is None:
         logger.warning("Cannot init telemetry tables — no connection")

@@ -26,6 +26,7 @@ SERVING_ENDPOINT=$(get_var serving_endpoint)
 OTEL_CATALOG=$(get_var otel_catalog)
 OTEL_RAW_SCHEMA=$(get_var otel_raw_schema)
 OTEL_OBSERVABILITY_SCHEMA=$(get_var otel_observability_schema)
+OTEL_ENABLED=$(get_var otel_enabled)
 APP_NAME="midas"
 
 DEPLOYER_EMAIL=$(databricks current-user me -p "$PROFILE" --output json \
@@ -40,6 +41,7 @@ echo "    Serving Endpoint:     $SERVING_ENDPOINT"
 echo "    OTel Catalog:         $OTEL_CATALOG"
 echo "    OTel Raw Schema:      $OTEL_RAW_SCHEMA"
 echo "    OTel Silver/Gold:     $OTEL_OBSERVABILITY_SCHEMA"
+echo "    OTel Enabled:         $OTEL_ENABLED"
 echo ""
 
 # ── Inject runtime config into .build/app.yml ──
@@ -55,6 +57,8 @@ env:
     value: "${WAREHOUSE_ID}"
   - name: OTEL_SERVICE_NAME
     value: "${APP_NAME}"
+  - name: OTEL_ENABLED
+    value: "${OTEL_ENABLED}"
 EOF
 
 # Build if apx is available, otherwise use pre-built .build/
