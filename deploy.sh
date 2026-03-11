@@ -76,8 +76,6 @@ echo "==> Setting OBO scopes and resources..."
 databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
   \"user_api_scopes\": [
     \"sql\",
-    \"sql.warehouses:read\",
-    \"dashboards.genie\",
     \"catalog.catalogs:read\",
     \"catalog.schemas:read\",
     \"catalog.tables:read\"
