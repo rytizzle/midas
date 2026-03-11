@@ -14,6 +14,17 @@ class ProfileRequest(BaseModel):
     warehouse_id: str
 
 
+def _safe_value(v):
+    """Convert a SQL value to a JSON-safe type."""
+    if v is None:
+        return None
+    if isinstance(v, (str, int, float, bool)):
+        return v
+    if hasattr(v, "isoformat"):
+        return v.isoformat()
+    return str(v)
+
+
 def _escape_ident(name: str) -> str:
     return ".".join(f"`{part}`" for part in name.split("."))
 
@@ -83,7 +94,7 @@ def _profile_table(cursor, table_fqn: str, warehouse_id: str) -> dict:
         sample_rows = []
         for r in cursor.fetchall():
             sample_rows.append({
-                k: v.isoformat() if hasattr(v, "isoformat") else v
+                k: _safe_value(v)
                 for k, v in zip(sample_cols, r)
             })
 
