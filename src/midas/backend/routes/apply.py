@@ -65,24 +65,21 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
                     except Exception as e:
                         results.append({"table": table_fqn, "type": "table_comment", "status": "error", "error": str(e)})
 
-                if kind == "VIEW":
-                    col_count = len(changes.get("columns", {}))
-                    if col_count > 0:
-                        results.append({"table": table_fqn, "type": "column_comment", "status": "skipped",
-                                        "error": f"Column comments not supported on views ({col_count} skipped)"})
-                else:
-                    for col_name, col_data in changes.get("columns", {}).items():
-                        desc = col_data.get("description", "")
-                        if not desc:
-                            continue
-                        escaped_desc = _escape_comment(desc)
+                for col_name, col_data in changes.get("columns", {}).items():
+                    desc = col_data.get("description", "")
+                    if not desc:
+                        continue
+                    escaped_desc = _escape_comment(desc)
+                    if kind == "VIEW":
+                        stmt = f"COMMENT ON COLUMN {ident}.`{col_name}` IS '{escaped_desc}'"
+                    else:
                         stmt = f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
-                        try:
-                            with trace_span("sql.alter_column_comment", route="apply", metadata={"table": table_fqn, "column": col_name}):
-                                cursor.execute(stmt)
-                            results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "success"})
-                        except Exception as e:
-                            results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
+                    try:
+                        with trace_span("sql.alter_column_comment", route="apply", metadata={"table": table_fqn, "column": col_name, "kind": kind}):
+                            cursor.execute(stmt)
+                        results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "success"})
+                    except Exception as e:
+                        results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
     finally:
         conn.close()
     return results
@@ -113,15 +110,18 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
                 except Exception as e:
                     results.append({"table": table_fqn, "type": "table_comment", "status": "error", "error": str(e)})
 
-                if kind != "VIEW":
-                    for col_name, col_meta in prev.get("columns", {}).items():
-                        prev_desc = col_meta.get("comment", "")
-                        escaped_desc = _escape_comment(prev_desc)
-                        try:
-                            cursor.execute(f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'")
-                            results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "restored"})
-                        except Exception as e:
-                            results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
+                for col_name, col_meta in prev.get("columns", {}).items():
+                    prev_desc = col_meta.get("comment", "")
+                    escaped_desc = _escape_comment(prev_desc)
+                    if kind == "VIEW":
+                        stmt = f"COMMENT ON COLUMN {ident}.`{col_name}` IS '{escaped_desc}'"
+                    else:
+                        stmt = f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
+                    try:
+                        cursor.execute(stmt)
+                        results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "restored"})
+                    except Exception as e:
+                        results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
     finally:
         conn.close()
 
