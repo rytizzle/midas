@@ -1,5 +1,4 @@
 import logging
-import traceback
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,9 +8,6 @@ from ..telemetry import trace_span
 
 logger = logging.getLogger("midas.apply")
 router = APIRouter(prefix="/apply", tags=["apply"])
-
-_previous_state: dict = {}
-
 
 def _escape_ident(name: str) -> str:
     return ".".join(f"`{part}`" for part in name.split("."))
@@ -28,15 +24,12 @@ class ApplyRequest(BaseModel):
 
 
 class UndoRequest(BaseModel):
-    tables: list[str]
+    previous_state: dict
     warehouse_id: str
 
 
 @router.post("/execute")
 def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
-    global _previous_state
-    _previous_state = req.current_metadata
-
     if not headers.token:
         return JSONResponse(status_code=401, content={"error": "No user token available"})
 
@@ -81,8 +74,7 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
 
 @router.post("/undo")
 def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
-    global _previous_state
-    if not _previous_state:
+    if not req.previous_state:
         return {"error": "No previous state to restore"}
 
     if not headers.token:
@@ -92,8 +84,7 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
     results = []
     try:
         with conn.cursor() as cursor:
-            for table_fqn in req.tables:
-                prev = _previous_state.get(table_fqn, {})
+            for table_fqn, prev in req.previous_state.items():
                 ident = _escape_ident(table_fqn)
 
                 prev_comment = prev.get("comment", "")
@@ -115,5 +106,4 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
     finally:
         conn.close()
 
-    _previous_state = {}
     return results

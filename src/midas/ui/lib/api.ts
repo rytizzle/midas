@@ -51,7 +51,7 @@ export interface ProfileRequest {
     warehouse_id: string;
 }
 export interface UndoRequest {
-    tables: string[];
+    previous_state: Record<string, unknown>;
     warehouse_id: string;
 }
 export interface UrlRequest {
@@ -85,7 +85,15 @@ export interface ValidationError {
 export interface VersionOut {
     version: string;
 }
-export const apply_changes_api_apply_execute_post = async (data: ApplyRequest, options?: RequestInit): Promise<{
+export interface Apply_changes_api_apply_execute_postParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const apply_changes_api_apply_execute_post = async (data: ApplyRequest, params?: Apply_changes_api_apply_execute_postParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/apply/execute", {
@@ -93,6 +101,24 @@ export const apply_changes_api_apply_execute_post = async (data: ApplyRequest, o
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
             ...options?.headers
         },
         body: JSON.stringify(data)
@@ -114,14 +140,25 @@ export const apply_changes_api_apply_execute_post = async (data: ApplyRequest, o
 export function useApply_changes_api_apply_execute_post(options?: {
     mutation?: UseMutationOptions<{
         data: unknown;
-    }, ApiError, ApplyRequest>;
+    }, ApiError, {
+        params: Apply_changes_api_apply_execute_postParams;
+        data: ApplyRequest;
+    }>;
 }) {
     return useMutation({
-        mutationFn: (data)=>apply_changes_api_apply_execute_post(data),
+        mutationFn: (vars)=>apply_changes_api_apply_execute_post(vars.data, vars.params),
         ...options?.mutation
     });
 }
-export const undo_changes_api_apply_undo_post = async (data: UndoRequest, options?: RequestInit): Promise<{
+export interface Undo_changes_api_apply_undo_postParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const undo_changes_api_apply_undo_post = async (data: UndoRequest, params?: Undo_changes_api_apply_undo_postParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/apply/undo", {
@@ -129,6 +166,24 @@ export const undo_changes_api_apply_undo_post = async (data: UndoRequest, option
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
             ...options?.headers
         },
         body: JSON.stringify(data)
@@ -150,10 +205,13 @@ export const undo_changes_api_apply_undo_post = async (data: UndoRequest, option
 export function useUndo_changes_api_apply_undo_post(options?: {
     mutation?: UseMutationOptions<{
         data: unknown;
-    }, ApiError, UndoRequest>;
+    }, ApiError, {
+        params: Undo_changes_api_apply_undo_postParams;
+        data: UndoRequest;
+    }>;
 }) {
     return useMutation({
-        mutationFn: (data)=>undo_changes_api_apply_undo_post(data),
+        mutationFn: (vars)=>undo_changes_api_apply_undo_post(vars.data, vars.params),
         ...options?.mutation
     });
 }
@@ -241,7 +299,15 @@ export function useList_catalogs_api_catalog_catalogs_getSuspense<TData = {
         ...options?.query
     });
 }
-export const check_permissions_api_catalog_check_permissions_post = async (data: PermissionCheckRequest, options?: RequestInit): Promise<{
+export interface Check_permissions_api_catalog_check_permissions_postParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const check_permissions_api_catalog_check_permissions_post = async (data: PermissionCheckRequest, params?: Check_permissions_api_catalog_check_permissions_postParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/catalog/check-permissions", {
@@ -249,6 +315,24 @@ export const check_permissions_api_catalog_check_permissions_post = async (data:
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
             ...options?.headers
         },
         body: JSON.stringify(data)
@@ -270,11 +354,98 @@ export const check_permissions_api_catalog_check_permissions_post = async (data:
 export function useCheck_permissions_api_catalog_check_permissions_post(options?: {
     mutation?: UseMutationOptions<{
         data: unknown;
-    }, ApiError, PermissionCheckRequest>;
+    }, ApiError, {
+        params: Check_permissions_api_catalog_check_permissions_postParams;
+        data: PermissionCheckRequest;
+    }>;
 }) {
     return useMutation({
-        mutationFn: (data)=>check_permissions_api_catalog_check_permissions_post(data),
+        mutationFn: (vars)=>check_permissions_api_catalog_check_permissions_post(vars.data, vars.params),
         ...options?.mutation
+    });
+}
+export interface Get_current_user_api_catalog_me_getParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const get_current_user_api_catalog_me_get = async (params?: Get_current_user_api_catalog_me_getParams, options?: RequestInit): Promise<{
+    data: unknown;
+}> =>{
+    const res = await fetch("/api/catalog/me", {
+        ...options,
+        method: "GET",
+        headers: {
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
+            ...options?.headers
+        }
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const get_current_user_api_catalog_me_getKey = (params?: Get_current_user_api_catalog_me_getParams)=>{
+    return [
+        "/api/catalog/me",
+        params
+    ] as const;
+};
+export function useGet_current_user_api_catalog_me_get<TData = {
+    data: unknown;
+}>(options?: {
+    params?: Get_current_user_api_catalog_me_getParams;
+    query?: Omit<UseQueryOptions<{
+        data: unknown;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: get_current_user_api_catalog_me_getKey(options?.params),
+        queryFn: ()=>get_current_user_api_catalog_me_get(options?.params),
+        ...options?.query
+    });
+}
+export function useGet_current_user_api_catalog_me_getSuspense<TData = {
+    data: unknown;
+}>(options?: {
+    params?: Get_current_user_api_catalog_me_getParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: unknown;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: get_current_user_api_catalog_me_getKey(options?.params),
+        queryFn: ()=>get_current_user_api_catalog_me_get(options?.params),
+        ...options?.query
     });
 }
 export interface List_schemas_api_catalog_schemas_getParams {
@@ -943,7 +1114,15 @@ export function useGenerate_metadata_api_metadata_generate_post(options?: {
         ...options?.mutation
     });
 }
-export const profile_tables_api_profiling_profile_post = async (data: ProfileRequest, options?: RequestInit): Promise<{
+export interface Profile_tables_api_profiling_profile_postParams {
+    "X-Forwarded-Host"?: string | null;
+    "X-Forwarded-Preferred-Username"?: string | null;
+    "X-Forwarded-User"?: string | null;
+    "X-Forwarded-Email"?: string | null;
+    "X-Request-Id"?: string | null;
+    "X-Forwarded-Access-Token"?: string | null;
+}
+export const profile_tables_api_profiling_profile_post = async (data: ProfileRequest, params?: Profile_tables_api_profiling_profile_postParams, options?: RequestInit): Promise<{
     data: unknown;
 }> =>{
     const res = await fetch("/api/profiling/profile", {
@@ -951,6 +1130,24 @@ export const profile_tables_api_profiling_profile_post = async (data: ProfileReq
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(params?.["X-Forwarded-Host"] != null && {
+                "X-Forwarded-Host": params["X-Forwarded-Host"]
+            }),
+            ...(params?.["X-Forwarded-Preferred-Username"] != null && {
+                "X-Forwarded-Preferred-Username": params["X-Forwarded-Preferred-Username"]
+            }),
+            ...(params?.["X-Forwarded-User"] != null && {
+                "X-Forwarded-User": params["X-Forwarded-User"]
+            }),
+            ...(params?.["X-Forwarded-Email"] != null && {
+                "X-Forwarded-Email": params["X-Forwarded-Email"]
+            }),
+            ...(params?.["X-Request-Id"] != null && {
+                "X-Request-Id": params["X-Request-Id"]
+            }),
+            ...(params?.["X-Forwarded-Access-Token"] != null && {
+                "X-Forwarded-Access-Token": params["X-Forwarded-Access-Token"]
+            }),
             ...options?.headers
         },
         body: JSON.stringify(data)
@@ -972,10 +1169,13 @@ export const profile_tables_api_profiling_profile_post = async (data: ProfileReq
 export function useProfile_tables_api_profiling_profile_post(options?: {
     mutation?: UseMutationOptions<{
         data: unknown;
-    }, ApiError, ProfileRequest>;
+    }, ApiError, {
+        params: Profile_tables_api_profiling_profile_postParams;
+        data: ProfileRequest;
+    }>;
 }) {
     return useMutation({
-        mutationFn: (data)=>profile_tables_api_profiling_profile_post(data),
+        mutationFn: (vars)=>profile_tables_api_profiling_profile_post(vars.data, vars.params),
         ...options?.mutation
     });
 }

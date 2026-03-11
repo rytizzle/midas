@@ -147,9 +147,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ changes, current_metadata: currentMetadata, warehouse_id: warehouseId }),
     }),
-  undoChanges: (tables: string[], warehouseId: string) =>
+  undoChanges: (
+    previousState: Record<string, { comment: string; columns: Record<string, { comment: string }> }>,
+    warehouseId: string
+  ) =>
     request<ApplyResult[]>("/api/apply/undo", {
       method: "POST",
-      body: JSON.stringify({ tables, warehouse_id: warehouseId }),
+      body: JSON.stringify({ previous_state: previousState, warehouse_id: warehouseId }),
     }),
 };

@@ -15,6 +15,7 @@ export default function ApplyChanges({
   const [applying, setApplying] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [savedCurrentMeta, setSavedCurrentMeta] = useState<Record<string, { comment: string; columns: Record<string, { comment: string }> }> | null>(null);
 
   const totalChanges = Object.entries(metadata).reduce((sum, [, m]) => {
     let count = m.table_comment ? 1 : 0;
@@ -38,6 +39,7 @@ export default function ApplyChanges({
         currentMeta[fqn] = { comment: t?.comment || "", columns: colMeta };
       }
 
+      setSavedCurrentMeta(currentMeta);
       const res = await api.applyChanges(changes, currentMeta, warehouseId);
       setResults(res);
     } catch (e) { console.error(e); }
@@ -45,9 +47,10 @@ export default function ApplyChanges({
   };
 
   const handleUndo = async () => {
+    if (!savedCurrentMeta) return;
     setUndoing(true);
     try {
-      const res = await api.undoChanges(Object.keys(metadata), warehouseId);
+      const res = await api.undoChanges(savedCurrentMeta, warehouseId);
       setUndoResults(res);
     } catch (e) { console.error(e); }
     finally { setUndoing(false); }
