@@ -17,6 +17,13 @@ def _escape_comment(text: str) -> str:
     return text.replace("\\", "\\\\").replace("'", "\\'")
 
 
+def _is_view(table_type: str) -> bool:
+    """Check if the entity is a view or materialized view (not a regular table)."""
+    t = table_type.upper()
+    return "VIEW" in t
+
+
+
 class ApplyRequest(BaseModel):
     changes: dict
     current_metadata: dict
@@ -44,12 +51,14 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
         with conn.cursor() as cursor:
             for table_fqn, changes in req.changes.items():
                 ident = _escape_ident(table_fqn)
+                table_type = changes.get("table_type", "TABLE")
+                kind = "VIEW" if _is_view(table_type) else "TABLE"
 
                 if changes.get("table_comment"):
                     comment = _escape_comment(changes["table_comment"])
-                    stmt = f"COMMENT ON TABLE {ident} IS '{comment}'"
+                    stmt = f"COMMENT ON {kind} {ident} IS '{comment}'"
                     try:
-                        with trace_span("sql.alter_table_comment", route="apply", metadata={"table": table_fqn}):
+                        with trace_span("sql.alter_table_comment", route="apply", metadata={"table": table_fqn, "kind": kind}):
                             cursor.execute(stmt)
                         results.append({"table": table_fqn, "type": "table_comment", "status": "success"})
                     except Exception as e:
@@ -60,9 +69,9 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
                     if not desc:
                         continue
                     escaped_desc = _escape_comment(desc)
-                    stmt = f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
+                    stmt = f"ALTER {kind} {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
                     try:
-                        with trace_span("sql.alter_column_comment", route="apply", metadata={"table": table_fqn, "column": col_name}):
+                        with trace_span("sql.alter_column_comment", route="apply", metadata={"table": table_fqn, "column": col_name, "kind": kind}):
                             cursor.execute(stmt)
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "success"})
                     except Exception as e:
@@ -86,11 +95,13 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
         with conn.cursor() as cursor:
             for table_fqn, prev in req.previous_state.items():
                 ident = _escape_ident(table_fqn)
+                table_type = prev.get("table_type", "TABLE")
+                kind = "VIEW" if _is_view(table_type) else "TABLE"
 
                 prev_comment = prev.get("comment", "")
                 escaped = _escape_comment(prev_comment)
                 try:
-                    cursor.execute(f"ALTER TABLE {ident} SET TBLPROPERTIES ('comment' = '{escaped}')")
+                    cursor.execute(f"COMMENT ON {kind} {ident} IS '{escaped}'")
                     results.append({"table": table_fqn, "type": "table_comment", "status": "restored"})
                 except Exception as e:
                     results.append({"table": table_fqn, "type": "table_comment", "status": "error", "error": str(e)})
@@ -99,7 +110,7 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
                     prev_desc = col_meta.get("comment", "")
                     escaped_desc = _escape_comment(prev_desc)
                     try:
-                        cursor.execute(f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'")
+                        cursor.execute(f"ALTER {kind} {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'")
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "restored"})
                     except Exception as e:
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
