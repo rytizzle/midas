@@ -139,8 +139,8 @@ export const api = {
       body: JSON.stringify({ tables, context }),
     }),
   applyChanges: (
-    changes: Record<string, { table_comment: string; columns: Record<string, { description: string }> }>,
-    currentMetadata: Record<string, { comment: string; columns: Record<string, { comment: string }> }>,
+    changes: Record<string, { table_comment: string; columns: Record<string, { description: string }>; table_type: string }>,
+    currentMetadata: Record<string, { comment: string; columns: Record<string, { comment: string }>; table_type: string }>,
     warehouseId: string
   ) =>
     request<ApplyResult[]>("/api/apply/execute", {

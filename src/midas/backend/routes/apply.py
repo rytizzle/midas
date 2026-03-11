@@ -53,6 +53,7 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
                 ident = _escape_ident(table_fqn)
                 table_type = changes.get("table_type", "TABLE")
                 kind = "VIEW" if _is_view(table_type) else "TABLE"
+                logger.info(f"Applying to {table_fqn}: table_type={table_type}, kind={kind}")
 
                 if changes.get("table_comment"):
                     comment = _escape_comment(changes["table_comment"])
