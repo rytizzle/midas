@@ -73,8 +73,8 @@ def _profile_table(cursor, table_fqn: str, warehouse_id: str) -> dict:
         safe = col["name"]
         col["distinct_count"] = stats.get(f"distinct_{safe}", 0)
         col["null_pct"] = stats.get(f"null_pct_{safe}", 0)
-        raw_samples = stats.get(f"sample_{safe}", [])
-        col["sample_values"] = list(raw_samples) if raw_samples else []
+        raw_samples = stats.get(f"sample_{safe}")
+        col["sample_values"] = [str(v) for v in raw_samples] if raw_samples is not None and len(raw_samples) > 0 else []
 
     # Query 3: sample rows
     with trace_span("sql.sample_rows", route="profiling", metadata={"table": table_fqn}):
