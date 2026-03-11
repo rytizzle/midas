@@ -12,7 +12,7 @@ export default function MetadataReview({
   onBack: () => void;
 }) {
   const [local, setLocal] = useState(metadata);
-  const [expanded, setExpanded] = useState<string>(Object.keys(metadata)[0] || "");
+  const [expanded, setExpanded] = useState<string>("");
   const [rejected, setRejected] = useState<Record<string, Record<string, boolean>>>({});
   // Track which textareas are expanded for longer editing
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
