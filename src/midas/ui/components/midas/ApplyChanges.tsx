@@ -79,7 +79,7 @@ export default function ApplyChanges({
             <button onClick={() => setShowConfirm(true)} className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition-colors">Apply Changes</button>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2 text-amber-400 text-sm"><AlertTriangle size={16} /> This will execute ALTER TABLE statements. Continue?</div>
+              <div className="flex items-center justify-center gap-2 text-amber-400 text-sm"><AlertTriangle size={16} /> This will update metadata comments in Unity Catalog. Continue?</div>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => setShowConfirm(false)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">Cancel</button>
                 <button onClick={handleApply} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors">Confirm & Apply</button>
