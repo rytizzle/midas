@@ -100,7 +100,7 @@ targets:
       otel_catalog: midas_catalog
       otel_raw_schema: otel_raw
       otel_observability_schema: otel_observability
-      otel_enabled: "true"
+      otel_enabled: "false"
 
   # Example: customer or second workspace
   # prod:
