@@ -9,6 +9,12 @@ from ..telemetry import trace_span
 logger = logging.getLogger("midas.apply")
 router = APIRouter(prefix="/apply", tags=["apply"])
 
+def _run_sql(cursor, sql: str, warehouse_id: str):
+    """Execute SQL and log the query + warehouse."""
+    logger.info(f"[warehouse={warehouse_id}] {sql}")
+    cursor.execute(sql)
+
+
 def _escape_ident(name: str) -> str:
     return ".".join(f"`{part}`" for part in name.split("."))
 
@@ -53,14 +59,12 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
                 ident = _escape_ident(table_fqn)
                 table_type = changes.get("table_type", "TABLE")
                 kind = "VIEW" if _is_view(table_type) else "TABLE"
-                logger.info(f"Applying to {table_fqn}: table_type={table_type}, kind={kind}")
-
                 if changes.get("table_comment"):
                     comment = _escape_comment(changes["table_comment"])
                     stmt = f"COMMENT ON {kind} {ident} IS '{comment}'"
                     try:
                         with trace_span("sql.alter_table_comment", route="apply", metadata={"table": table_fqn, "kind": kind}):
-                            cursor.execute(stmt)
+                            _run_sql(cursor, stmt, req.warehouse_id)
                         results.append({"table": table_fqn, "type": "table_comment", "status": "success"})
                     except Exception as e:
                         results.append({"table": table_fqn, "type": "table_comment", "status": "error", "error": str(e)})
@@ -76,7 +80,7 @@ def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
                         stmt = f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
                     try:
                         with trace_span("sql.alter_column_comment", route="apply", metadata={"table": table_fqn, "column": col_name, "kind": kind}):
-                            cursor.execute(stmt)
+                            _run_sql(cursor, stmt, req.warehouse_id)
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "success"})
                     except Exception as e:
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
@@ -104,8 +108,9 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
 
                 prev_comment = prev.get("comment", "")
                 escaped = _escape_comment(prev_comment)
+                stmt = f"COMMENT ON {kind} {ident} IS '{escaped}'"
                 try:
-                    cursor.execute(f"COMMENT ON {kind} {ident} IS '{escaped}'")
+                    _run_sql(cursor, stmt, req.warehouse_id)
                     results.append({"table": table_fqn, "type": "table_comment", "status": "restored"})
                 except Exception as e:
                     results.append({"table": table_fqn, "type": "table_comment", "status": "error", "error": str(e)})
@@ -118,7 +123,7 @@ def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
                     else:
                         stmt = f"ALTER TABLE {ident} ALTER COLUMN `{col_name}` COMMENT '{escaped_desc}'"
                     try:
-                        cursor.execute(stmt)
+                        _run_sql(cursor, stmt, req.warehouse_id)
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "restored"})
                     except Exception as e:
                         results.append({"table": table_fqn, "type": "column_comment", "column": col_name, "status": "error", "error": str(e)})
