@@ -19,10 +19,20 @@ def get_config() -> Config:
 
 
 def get_sql_connection(warehouse_id: str):
-    """Create a SQL connection to the specified warehouse."""
+    """Create a SQL connection using the app SP credentials."""
     cfg = get_config()
     return sql.connect(
         server_hostname=cfg.host.replace("https://", ""),
         http_path=f"/sql/1.0/warehouses/{warehouse_id}",
         credentials_provider=lambda: cfg.authenticate,
+    )
+
+
+def get_user_sql_connection(warehouse_id: str, access_token: str):
+    """Create a SQL connection using the user's OBO token."""
+    cfg = get_config()
+    return sql.connect(
+        server_hostname=cfg.host.replace("https://", ""),
+        http_path=f"/sql/1.0/warehouses/{warehouse_id}",
+        access_token=access_token,
     )

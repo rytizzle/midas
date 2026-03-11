@@ -3,7 +3,8 @@ import traceback
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from ..config import get_sql_connection
+from ..config import get_user_sql_connection
+from ..core.dependencies import Dependencies
 from ..telemetry import trace_span
 
 logger = logging.getLogger("midas.apply")
@@ -32,13 +33,16 @@ class UndoRequest(BaseModel):
 
 
 @router.post("/execute")
-def apply_changes(req: ApplyRequest):
+def apply_changes(req: ApplyRequest, headers: Dependencies.Headers):
     global _previous_state
     _previous_state = req.current_metadata
 
+    if not headers.token:
+        return JSONResponse(status_code=401, content={"error": "No user token available"})
+
     try:
         with trace_span("sql.connect", route="apply"):
-            conn = get_sql_connection(req.warehouse_id)
+            conn = get_user_sql_connection(req.warehouse_id, headers.token.get_secret_value())
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"SQL connect failed: {e}"})
 
@@ -76,12 +80,15 @@ def apply_changes(req: ApplyRequest):
 
 
 @router.post("/undo")
-def undo_changes(req: UndoRequest):
+def undo_changes(req: UndoRequest, headers: Dependencies.Headers):
     global _previous_state
     if not _previous_state:
         return {"error": "No previous state to restore"}
 
-    conn = get_sql_connection(req.warehouse_id)
+    if not headers.token:
+        return JSONResponse(status_code=401, content={"error": "No user token available"})
+
+    conn = get_user_sql_connection(req.warehouse_id, headers.token.get_secret_value())
     results = []
     try:
         with conn.cursor() as cursor:

@@ -1,7 +1,8 @@
 import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
-from ..config import get_sql_connection
+from ..config import get_user_sql_connection
+from ..core.dependencies import Dependencies
 from ..telemetry import trace_span
 
 logger = logging.getLogger("midas.profiling")
@@ -80,12 +81,15 @@ def _profile_table(cursor, table_fqn: str) -> dict:
 
 
 @router.post("/profile")
-def profile_tables(req: ProfileRequest):
+def profile_tables(req: ProfileRequest, headers: Dependencies.Headers):
     from fastapi.responses import JSONResponse
+
+    if not headers.token:
+        return JSONResponse(status_code=401, content={"error": "No user token available"})
 
     try:
         with trace_span("sql.connect", route="profiling"):
-            conn = get_sql_connection(req.warehouse_id)
+            conn = get_user_sql_connection(req.warehouse_id, headers.token.get_secret_value())
     except Exception as e:
         logger.error(f"Failed to connect to warehouse {req.warehouse_id}: {e}")
         return JSONResponse(

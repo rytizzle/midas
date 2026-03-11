@@ -3,7 +3,7 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from databricks.sdk import WorkspaceClient
 from ..core.dependencies import Dependencies
-from ..config import get_sql_connection
+from ..config import get_user_sql_connection
 from ..telemetry import trace_span
 
 logger = logging.getLogger("midas.catalog")
@@ -80,10 +80,12 @@ class PermissionCheckRequest(BaseModel):
 
 
 @router.post("/check-permissions")
-def check_permissions(req: PermissionCheckRequest):
+def check_permissions(req: PermissionCheckRequest, headers: Dependencies.Headers):
     results = {}
+    if not headers.token:
+        return {"error": "No user token available"}
     with trace_span("sql.check_permissions", route="catalog"):
-        conn = get_sql_connection(req.warehouse_id)
+        conn = get_user_sql_connection(req.warehouse_id, headers.token.get_secret_value())
         try:
             cursor = conn.cursor()
             for fqn in req.tables:
