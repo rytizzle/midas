@@ -43,7 +43,7 @@ echo "    OTel Silver/Gold:     $OTEL_OBSERVABILITY_SCHEMA"
 echo ""
 
 # ── Inject runtime config into .build/app.yml ──
-cat > "$(dirname "$0")/.build/app.yaml" <<EOF
+cat > "$(dirname "$0")/.build/app.yml" <<EOF
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 
 env:
