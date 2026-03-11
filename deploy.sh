@@ -92,24 +92,61 @@ SP_CLIENT_ID=$(databricks api get "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['service_principal_client_id'])")
 echo "    SP Client ID: $SP_CLIENT_ID"
 
-# Grant SP CAN_USE on the OTel warehouse (direct permission, not an app resource)
-databricks api patch "/api/2.0/permissions/sql/warehouses/${WAREHOUSE_ID}" -p "$PROFILE" --json "{
-  \"access_control_list\": [
-    {\"service_principal_name\": \"${SP_CLIENT_ID}\", \"permission_level\": \"CAN_USE\"}
-  ]
-}"
-echo "    Warehouse CAN_USE granted."
-
-# Grant SP catalog/schema access for OTel writes
+# Helper: run SQL via statement API (best-effort)
 run_sql() {
     local SQL_JSON
     SQL_JSON=$(python3 -c "import json; print(json.dumps({'warehouse_id': '${WAREHOUSE_ID}', 'statement': '$1'}))")
     databricks api post /api/2.0/sql/statements -p "$PROFILE" --json "$SQL_JSON" > /dev/null
 }
-run_sql "GRANT USE CATALOG ON CATALOG ${OTEL_CATALOG} TO \`${SP_CLIENT_ID}\`"
-run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_RAW_SCHEMA} TO \`${SP_CLIENT_ID}\`"
-run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_OBSERVABILITY_SCHEMA} TO \`${SP_CLIENT_ID}\`"
-echo "    Schema grants applied."
+
+# ── Best-effort SP grants (deployer may not have CAN_MANAGE on warehouse) ──
+GRANT_FAILED=false
+
+# Grant SP CAN_USE on the OTel warehouse (direct permission, not an app resource)
+if databricks api patch "/api/2.0/permissions/sql/warehouses/${WAREHOUSE_ID}" -p "$PROFILE" --json "{
+  \"access_control_list\": [
+    {\"service_principal_name\": \"${SP_CLIENT_ID}\", \"permission_level\": \"CAN_USE\"}
+  ]
+}" 2>/dev/null; then
+    echo "    Warehouse CAN_USE granted."
+else
+    GRANT_FAILED=true
+    echo ""
+    echo "    WARNING: Could not grant SP warehouse access (requires CAN_MANAGE on the warehouse)."
+fi
+
+# Grant SP catalog/schema access for OTel writes
+if run_sql "GRANT USE CATALOG ON CATALOG ${OTEL_CATALOG} TO \`${SP_CLIENT_ID}\`" 2>/dev/null \
+   && run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_RAW_SCHEMA} TO \`${SP_CLIENT_ID}\`" 2>/dev/null \
+   && run_sql "GRANT ALL PRIVILEGES ON SCHEMA ${OTEL_CATALOG}.${OTEL_OBSERVABILITY_SCHEMA} TO \`${SP_CLIENT_ID}\`" 2>/dev/null; then
+    echo "    Schema grants applied."
+else
+    GRANT_FAILED=true
+    echo "    WARNING: Could not apply some schema grants (requires catalog/schema ownership)."
+fi
+
+if [ "$GRANT_FAILED" = true ]; then
+    echo ""
+    echo "    ┌─────────────────────────────────────────────────────────────────────┐"
+    echo "    │  Some SP grants failed. Ask a workspace admin to run these:         │"
+    echo "    │                                                                     │"
+    echo "    │  1. Grant the SP CAN_USE on warehouse ${WAREHOUSE_ID}  │"
+    echo "    │     (Compute > SQL Warehouses > Permissions)                        │"
+    echo "    │                                                                     │"
+    echo "    │  2. Run in a SQL editor:                                            │"
+    echo "    │     GRANT USE CATALOG ON CATALOG ${OTEL_CATALOG}                    │"
+    echo "    │       TO \`${SP_CLIENT_ID}\`;                                       │"
+    echo "    │     GRANT ALL PRIVILEGES ON SCHEMA                                  │"
+    echo "    │       ${OTEL_CATALOG}.${OTEL_RAW_SCHEMA}                            │"
+    echo "    │       TO \`${SP_CLIENT_ID}\`;                                       │"
+    echo "    │     GRANT ALL PRIVILEGES ON SCHEMA                                  │"
+    echo "    │       ${OTEL_CATALOG}.${OTEL_OBSERVABILITY_SCHEMA}                  │"
+    echo "    │       TO \`${SP_CLIENT_ID}\`;                                       │"
+    echo "    │                                                                     │"
+    echo "    │  OTel telemetry will be disabled until these grants are in place.    │"
+    echo "    └─────────────────────────────────────────────────────────────────────┘"
+    echo ""
+fi
 
 echo "==> Deploying app code..."
 databricks apps deploy "$APP_NAME" --source-code-path "$SOURCE_PATH" -p "$PROFILE"
