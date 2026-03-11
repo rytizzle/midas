@@ -43,7 +43,6 @@ def generate_table_metadata(
     prompt = f"""You are a metadata expert for Databricks Unity Catalog. Generate concise, Genie-optimized metadata for the table below.
 
 TABLE: {table_name}
-ROW COUNT: {row_count}
 USER CONTEXT: {user_context or 'None provided'}
 
 COLUMNS:
@@ -53,7 +52,7 @@ SAMPLE ROWS:
 {sample_str}
 
 Generate a JSON response with:
-1. "table_comment": A 1-2 sentence description of what this table contains. Reference specific data patterns you observe.
+1. "table_comment": A 1-2 sentence description of what this table contains. Reference specific data patterns you observe. Do NOT mention row counts or number of records — tables change over time.
 2. "columns": An object where each key is a column name and the value is an object with:
    - "description": A concise description (1 sentence) that helps Genie understand the column's meaning, typical values, and business context.
 
