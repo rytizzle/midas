@@ -42,8 +42,8 @@ echo "    OTel Raw Schema:      $OTEL_RAW_SCHEMA"
 echo "    OTel Silver/Gold:     $OTEL_OBSERVABILITY_SCHEMA"
 echo ""
 
-# ── Inject runtime config into app.yml ──
-cat > "$(dirname "$0")/app.yml" <<EOF
+# ── Inject runtime config into .build/app.yml ──
+cat > "$(dirname "$0")/.build/app.yml" <<EOF
 command: ["uvicorn", "midas.backend.app:app", "--workers", "2"]
 
 env:
