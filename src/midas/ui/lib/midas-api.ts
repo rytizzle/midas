@@ -87,7 +87,13 @@ export interface WarehouseInfo {
   size: string;
 }
 
+export interface UserInfo {
+  userName: string;
+  displayName?: string;
+}
+
 export const api = {
+  getMe: () => request<UserInfo>("/api/current-user"),
   getWarehouses: () => request<WarehouseInfo[]>("/api/catalog/warehouses"),
   getGenieRooms: () => request<GenieRoom[]>("/api/genie/rooms"),
   getGenieRoomTables: (spaceId: string) =>

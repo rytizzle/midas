@@ -8,7 +8,7 @@ import MetadataReview from "@/components/midas/MetadataReview";
 import ApplyChanges from "@/components/midas/ApplyChanges";
 import { api } from "@/lib/midas-api";
 import type { TableInfo, ProfileResult, GeneratedMetadata, WarehouseInfo } from "@/lib/midas-api";
-import { Sparkles, Database } from "lucide-react";
+import { Sparkles, Database, User } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: () => <MidasApp />,
@@ -26,6 +26,11 @@ function MidasApp() {
   const [warehouses, setWarehouses] = useState<WarehouseInfo[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>("");
   const [loadingWarehouses, setLoadingWarehouses] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  useEffect(() => {
+    api.getMe().then((u) => setUserEmail(u.userName)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.getWarehouses().then((whs) => {
@@ -46,7 +51,14 @@ function MidasApp() {
             <h1 className="text-xl font-bold text-slate-100">Midas</h1>
             <span className="text-sm text-slate-500">AI Metadata for Genie</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            {userEmail && (
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <User size={12} />
+                {userEmail}
+              </span>
+            )}
+            <div className="flex items-center gap-2">
             <Database size={16} className="text-slate-400" />
             <select
               value={warehouseId}
@@ -61,6 +73,7 @@ function MidasApp() {
                 </option>
               ))}
             </select>
+            </div>
           </div>
         </div>
       </header>
