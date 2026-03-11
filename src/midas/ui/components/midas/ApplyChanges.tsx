@@ -32,8 +32,8 @@ export default function ApplyChanges({
       const tableMap = Object.fromEntries(tables.map((t) => [t.full_name, t]));
 
       for (const [fqn, m] of Object.entries(metadata)) {
-        changes[fqn] = { table_comment: m.table_comment, columns: m.columns, table_type: t?.table_type || "TABLE" };
         const t = tableMap[fqn];
+        changes[fqn] = { table_comment: m.table_comment, columns: m.columns, table_type: t?.table_type || "TABLE" };
         const colMeta: Record<string, { comment: string }> = {};
         if (t?.columns) t.columns.forEach((c) => { colMeta[c.name] = { comment: c.comment || "" }; });
         currentMeta[fqn] = { comment: t?.comment || "", columns: colMeta, table_type: t?.table_type || "TABLE" };
