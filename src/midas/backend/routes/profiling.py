@@ -25,12 +25,15 @@ def _run_sql(cursor, sql: str, warehouse_id: str):
 
 
 def _profile_table(cursor, table_fqn: str, warehouse_id: str) -> dict:
+    """Profile a table in 3 queries regardless of column count.
+
+    Query 1: DESCRIBE TABLE — schema + row count via COUNT(*)
+    Query 2: Combined stats — distinct counts, null %, and sample values per column (single scan)
+    Query 3: Sample rows — SELECT * LIMIT 10
+    """
     ident = _escape_ident(table_fqn)
 
-    with trace_span("sql.count", route="profiling", metadata={"table": table_fqn}):
-        _run_sql(cursor, f"SELECT COUNT(*) AS cnt FROM {ident}", warehouse_id)
-        row_count = cursor.fetchone()[0]
-
+    # Query 1: schema
     with trace_span("sql.describe", route="profiling", metadata={"table": table_fqn}):
         _run_sql(cursor, f"DESCRIBE TABLE EXTENDED {ident}", warehouse_id)
         describe_rows = cursor.fetchall()
@@ -44,44 +47,44 @@ def _profile_table(cursor, table_fqn: str, warehouse_id: str) -> dict:
         columns.append({"name": col_name.strip(), "type": col_type.strip()})
 
     if not columns:
-        return {"table": table_fqn, "row_count": row_count, "columns": [], "sample_rows": []}
+        return {"table": table_fqn, "row_count": 0, "columns": [], "sample_rows": []}
 
-    with trace_span("sql.column_stats", route="profiling", metadata={"table": table_fqn, "col_count": len(columns)}):
-        agg_parts = []
+    # Query 2: count + distinct + null% + sample values — single table scan
+    with trace_span("sql.combined_stats", route="profiling", metadata={"table": table_fqn, "col_count": len(columns)}):
+        parts = ["COUNT(*) AS `_row_count`"]
         for col in columns:
             cn = f"`{col['name']}`"
-            agg_parts.append(f"COUNT(DISTINCT {cn}) AS `distinct_{col['name']}`")
-            agg_parts.append(
-                f"ROUND(100.0 * SUM(CASE WHEN {cn} IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS `null_pct_{col['name']}`"
+            safe = col["name"]
+            parts.append(f"COUNT(DISTINCT {cn}) AS `distinct_{safe}`")
+            parts.append(
+                f"ROUND(100.0 * SUM(CASE WHEN {cn} IS NULL THEN 1 ELSE 0 END) / COUNT(*), 1) AS `null_pct_{safe}`"
             )
-        if agg_parts:
-            sql_stmt = f"SELECT {', '.join(agg_parts)} FROM {ident}"
-            _run_sql(cursor, sql_stmt, warehouse_id)
-            agg_row = cursor.fetchone()
-            agg_cols = [d[0] for d in cursor.description]
-            agg_dict = dict(zip(agg_cols, agg_row))
-        else:
-            agg_dict = {}
+            parts.append(
+                f"SLICE(COLLECT_SET(CAST({cn} AS STRING)), 1, 5) AS `sample_{safe}`"
+            )
+        sql_stmt = f"SELECT {', '.join(parts)} FROM {ident}"
+        _run_sql(cursor, sql_stmt, warehouse_id)
+        row = cursor.fetchone()
+        cols = [d[0] for d in cursor.description]
+        stats = dict(zip(cols, row))
 
-    with trace_span("sql.sample_values", route="profiling", metadata={"table": table_fqn, "col_count": len(columns)}):
-        for col in columns:
-            cn = f"`{col['name']}`"
-            try:
-                _run_sql(cursor, f"SELECT DISTINCT CAST({cn} AS STRING) FROM {ident} WHERE {cn} IS NOT NULL LIMIT 5", warehouse_id)
-                col["sample_values"] = [r[0] for r in cursor.fetchall()]
-            except Exception:
-                col["sample_values"] = []
-            col["distinct_count"] = agg_dict.get(f"distinct_{col['name']}", 0)
-            col["null_pct"] = agg_dict.get(f"null_pct_{col['name']}", 0)
+    row_count = stats.get("_row_count", 0)
+    for col in columns:
+        safe = col["name"]
+        col["distinct_count"] = stats.get(f"distinct_{safe}", 0)
+        col["null_pct"] = stats.get(f"null_pct_{safe}", 0)
+        raw_samples = stats.get(f"sample_{safe}", [])
+        col["sample_values"] = list(raw_samples) if raw_samples else []
 
+    # Query 3: sample rows
     with trace_span("sql.sample_rows", route="profiling", metadata={"table": table_fqn}):
         _run_sql(cursor, f"SELECT * FROM {ident} LIMIT 10", warehouse_id)
         sample_cols = [d[0] for d in cursor.description]
         sample_rows = []
-        for row in cursor.fetchall():
+        for r in cursor.fetchall():
             sample_rows.append({
                 k: v.isoformat() if hasattr(v, "isoformat") else v
-                for k, v in zip(sample_cols, row)
+                for k, v in zip(sample_cols, r)
             })
 
     return {"table": table_fqn, "row_count": row_count, "columns": columns, "sample_rows": sample_rows}
