@@ -88,8 +88,12 @@ def profile_tables(req: ProfileRequest):
     try:
         with conn.cursor() as cursor:
             for table in req.tables:
-                with trace_span("profile_table", route="profiling", metadata={"table": table}):
-                    results[table] = _profile_table(cursor, table)
+                try:
+                    with trace_span("profile_table", route="profiling", metadata={"table": table}):
+                        results[table] = _profile_table(cursor, table)
+                except Exception as e:
+                    logger.warning(f"Failed to profile {table}: {e}")
+                    results[table] = {"table": table, "error": str(e)}
     finally:
         conn.close()
     return results
