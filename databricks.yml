@@ -19,12 +19,16 @@ variables:
     description: "Schema name for processed silver/gold OTel tables"
     default: otel_observability
 
+sync:
+  include:
+    - .build
+
 resources:
   apps:
     midas-app:
       name: "midas"
       description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
-      source_code_path: ./src
+      source_code_path: ./.build
       permissions:
         - user_name: ${workspace.current_user.userName}
           level: CAN_MANAGE
