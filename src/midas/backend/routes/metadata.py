@@ -21,6 +21,8 @@ def generate_metadata(req: GenerateRequest):
         user_context = req.context.get("blurb", "")
         if req.context.get("docs"):
             user_context += f"\n\nAdditional docs: {req.context['docs']}"
+        table_template = req.context.get("tableTemplate", "")
+        column_template = req.context.get("columnTemplate", "")
 
         results = {}
         for table_fqn, profile in req.tables.items():
@@ -37,6 +39,8 @@ def generate_metadata(req: GenerateRequest):
                     column_stats=profile.get("columns", []),
                     row_count=profile.get("row_count", 0),
                     user_context=user_context,
+                    table_template=table_template,
+                    column_template=column_template,
                 )
             results[table_fqn] = result
         return results

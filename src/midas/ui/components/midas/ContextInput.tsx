@@ -1,12 +1,54 @@
 import { useState, useEffect, useRef } from "react";
 import { api, type TableInfo } from "@/lib/midas-api";
-import { FileText, Table2, Upload, Globe, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Table2, Upload, Globe, Loader2, CheckCircle2, XCircle, LayoutTemplate } from "lucide-react";
 
 interface Source {
   name: string;
   type: "pdf" | "url";
   status: "loading" | "done" | "error";
 }
+
+const PRESET_TEMPLATES: { name: string; description: string; table: string; column: string }[] = [
+  {
+    name: "None",
+    description: "Free-form AI-generated descriptions",
+    table: "",
+    column: "",
+  },
+  {
+    name: "Genie-Optimized",
+    description: "Structured for Databricks Genie text-to-SQL",
+    table: [
+      "General Description - What this table contains and its primary purpose",
+      "Business Value - Why this data matters and who uses it",
+      "Key Relationships - Related tables and common join patterns",
+      "Filters & Segments - Common filtering dimensions and how users typically slice this data",
+    ].join("\n"),
+    column: "Definition and business meaning. Include typical value ranges or categories where relevant.",
+  },
+  {
+    name: "Data Governance",
+    description: "Focused on lineage, compliance, and data quality",
+    table: [
+      "General Description - What this table contains",
+      "Data Source - Where the data originates (upstream system or pipeline)",
+      "Update Frequency - How often the data refreshes (real-time, hourly, daily, etc.)",
+      "Data Owner - Team or role responsible for this data",
+      "Sensitivity - Classification level (public, internal, confidential, restricted)",
+    ].join("\n"),
+    column: "Business definition. Note any data quality considerations, valid value ranges, or sensitivity classification.",
+  },
+  {
+    name: "Business Glossary",
+    description: "Non-technical descriptions for business stakeholders",
+    table: [
+      "What is this? - Plain-language explanation a non-technical user would understand",
+      "Business Value - How this data supports business decisions",
+      "Example Use Cases - Typical questions this data can answer",
+    ].join("\n"),
+    column: "Plain-language explanation of what this field means in business terms. Avoid technical jargon.",
+  },
+];
 
 export default function ContextInput({
   tables,
@@ -16,13 +58,19 @@ export default function ContextInput({
   onBack,
 }: {
   tables: TableInfo[];
-  context: { blurb: string; docs: string };
-  onContext: (ctx: { blurb: string; docs: string }) => void;
+  context: { blurb: string; docs: string; tableTemplate: string; columnTemplate: string };
+  onContext: (ctx: { blurb: string; docs: string; tableTemplate: string; columnTemplate: string }) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
   const [blurb, setBlurb] = useState(context.blurb);
   const [docs, setDocs] = useState(context.docs);
+  const [tableTemplate, setTableTemplate] = useState(context.tableTemplate);
+  const [columnTemplate, setColumnTemplate] = useState(context.columnTemplate);
+  const [selectedPreset, setSelectedPreset] = useState<string>(() => {
+    const match = PRESET_TEMPLATES.find((p) => p.table === context.tableTemplate && p.column === context.columnTemplate);
+    return match?.name || (context.tableTemplate || context.columnTemplate ? "Custom" : "None");
+  });
   const [sources, setSources] = useState<Source[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [urlLoading, setUrlLoading] = useState(false);
@@ -32,10 +80,22 @@ export default function ContextInput({
   useEffect(() => {
     setBlurb(context.blurb);
     setDocs(context.docs);
+    setTableTemplate(context.tableTemplate);
+    setColumnTemplate(context.columnTemplate);
   }, [context]);
 
+  const handlePresetChange = (name: string) => {
+    setSelectedPreset(name);
+    if (name === "Custom") return;
+    const preset = PRESET_TEMPLATES.find((p) => p.name === name);
+    if (preset) {
+      setTableTemplate(preset.table);
+      setColumnTemplate(preset.column);
+    }
+  };
+
   const handleNext = () => {
-    onContext({ blurb, docs });
+    onContext({ blurb, docs, tableTemplate, columnTemplate });
     onNext();
   };
 
@@ -129,6 +189,57 @@ export default function ContextInput({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2"><LayoutTemplate size={16} className="text-amber-400" /><h3 className="font-medium">Description Template</h3></div>
+        <p className="text-sm text-slate-400">Choose a template to structure how AI generates descriptions. The AI will follow this format for every table and column.</p>
+
+        <div className="flex flex-wrap gap-2">
+          {PRESET_TEMPLATES.map((p) => (
+            <button
+              key={p.name}
+              onClick={() => handlePresetChange(p.name)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedPreset === p.name ? "bg-amber-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
+            >
+              {p.name}
+            </button>
+          ))}
+          <button
+            onClick={() => handlePresetChange("Custom")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedPreset === "Custom" ? "bg-amber-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}
+          >
+            Custom
+          </button>
+        </div>
+
+        {selectedPreset !== "None" && (
+          <div className="space-y-4">
+            {PRESET_TEMPLATES.find((p) => p.name === selectedPreset)?.description && (
+              <p className="text-xs text-slate-500 italic">{PRESET_TEMPLATES.find((p) => p.name === selectedPreset)?.description}</p>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm text-slate-400">Table comment template</label>
+              <textarea
+                value={tableTemplate}
+                onChange={(e) => { setTableTemplate(e.target.value); setSelectedPreset("Custom"); }}
+                placeholder={"General Description - ...\nBusiness Value - ...\nKey Relationships - ..."}
+                rows={5}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-amber-500 resize-y"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-400">Column description template</label>
+              <textarea
+                value={columnTemplate}
+                onChange={(e) => { setColumnTemplate(e.target.value); setSelectedPreset("Custom"); }}
+                placeholder="Definition and business meaning. Include typical values where relevant."
+                rows={2}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-amber-500 resize-y"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-700">

@@ -133,7 +133,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ tables, warehouse_id: warehouseId }),
     }),
-  generateMetadata: (tables: Record<string, ProfileResult>, context: { blurb: string; docs: string }) =>
+  generateMetadata: (tables: Record<string, ProfileResult>, context: { blurb: string; docs: string; tableTemplate: string; columnTemplate: string }) =>
     request<Record<string, GeneratedMetadata>>("/api/metadata/generate", {
       method: "POST",
       body: JSON.stringify({ tables, context }),

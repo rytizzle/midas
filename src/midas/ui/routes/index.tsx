@@ -17,9 +17,11 @@ export const Route = createFileRoute("/")({
 function MidasApp() {
   const [step, setStep] = useState(0);
   const [selectedTables, setSelectedTables] = useState<TableInfo[]>([]);
-  const [context, setContext] = useState<{ blurb: string; docs: string }>({
+  const [context, setContext] = useState<{ blurb: string; docs: string; tableTemplate: string; columnTemplate: string }>({
     blurb: "",
     docs: "",
+    tableTemplate: "",
+    columnTemplate: "",
   });
   const [profiles, setProfiles] = useState<Record<string, ProfileResult> | null>(null);
   const [metadata, setMetadata] = useState<Record<string, GeneratedMetadata> | null>(null);

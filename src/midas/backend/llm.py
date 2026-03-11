@@ -28,6 +28,8 @@ def generate_table_metadata(
     column_stats: list[dict],
     row_count: int,
     user_context: str = "",
+    table_template: str = "",
+    column_template: str = "",
 ) -> dict:
     model = os.environ.get("SERVING_ENDPOINT", "databricks-gpt-5-4")
     client = get_llm_client()
@@ -39,6 +41,23 @@ def generate_table_metadata(
     )
 
     sample_str = json.dumps(sample_rows[:5], indent=2, default=str) if sample_rows else "No samples"
+
+    # Build table comment instructions based on template
+    if table_template:
+        table_instruction = f"""1. "table_comment": A structured description using EXACTLY this format (fill in each section with specific details from the data):
+{table_template}
+
+Do NOT mention row counts or number of records — tables change over time."""
+    else:
+        table_instruction = '1. "table_comment": A 1-2 sentence description of what this table contains. Reference specific data patterns you observe. Do NOT mention row counts or number of records — tables change over time.'
+
+    # Build column description instructions based on template
+    if column_template:
+        column_instruction = f"""2. "columns": An object where each key is a column name and the value is an object with:
+   - "description": Follow this format: {column_template}"""
+    else:
+        column_instruction = """2. "columns": An object where each key is a column name and the value is an object with:
+   - "description": A concise description (1 sentence) that helps Genie understand the column's meaning, typical values, and business context."""
 
     prompt = f"""You are a metadata expert for Databricks Unity Catalog. Generate concise, Genie-optimized metadata for the table below.
 
@@ -52,9 +71,8 @@ SAMPLE ROWS:
 {sample_str}
 
 Generate a JSON response with:
-1. "table_comment": A 1-2 sentence description of what this table contains. Reference specific data patterns you observe. Do NOT mention row counts or number of records — tables change over time.
-2. "columns": An object where each key is a column name and the value is an object with:
-   - "description": A concise description (1 sentence) that helps Genie understand the column's meaning, typical values, and business context.
+{table_instruction}
+{column_instruction}
 
 Focus on being specific to the actual data patterns. Mention value ranges, common categories, and business meaning.
 Return ONLY valid JSON, no markdown fences."""
