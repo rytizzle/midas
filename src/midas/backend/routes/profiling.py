@@ -81,8 +81,17 @@ def _profile_table(cursor, table_fqn: str) -> dict:
 
 @router.post("/profile")
 def profile_tables(req: ProfileRequest):
-    with trace_span("sql.connect", route="profiling"):
-        conn = get_sql_connection(req.warehouse_id)
+    from fastapi.responses import JSONResponse
+
+    try:
+        with trace_span("sql.connect", route="profiling"):
+            conn = get_sql_connection(req.warehouse_id)
+    except Exception as e:
+        logger.error(f"Failed to connect to warehouse {req.warehouse_id}: {e}")
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Could not connect to warehouse: {e}"},
+        )
 
     results = {}
     try:

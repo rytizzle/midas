@@ -29,7 +29,7 @@ function MidasApp() {
   const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
-    api.getMe().then((u) => setUserEmail(u.userName)).catch(() => {});
+    api.getMe().then((u) => setUserEmail(u.email)).catch(() => {});
   }, []);
 
   useEffect(() => {

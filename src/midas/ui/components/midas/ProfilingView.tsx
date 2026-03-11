@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, type TableInfo, type ProfileResult, type GeneratedMetadata } from "@/lib/midas-api";
-import { BarChart3, Loader2, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
+import { BarChart3, Loader2, Sparkles, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 
 export default function ProfilingView({
   tables, context, profiles, onProfiles, metadata, onMetadata, onNext, onBack, warehouseId,
@@ -18,13 +18,19 @@ export default function ProfilingView({
   const [profiling, setProfiling] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string>("");
 
   const handleProfile = async () => {
     setProfiling(true);
+    setProfileError("");
     try {
       const result = await api.profileTables(tables.map((t) => t.full_name), warehouseId);
       onProfiles(result);
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      setProfileError(msg);
+      console.error(e);
+    }
     finally { setProfiling(false); }
   };
 
@@ -50,6 +56,12 @@ export default function ProfilingView({
             {profiling && <Loader2 size={18} className="animate-spin" />}
             {profiling ? "Profiling..." : "Start Profiling"}
           </button>
+          {profileError && (
+            <div className="mt-4 p-3 bg-red-900/30 border border-red-800 rounded-lg flex items-start gap-2">
+              <AlertTriangle size={16} className="text-red-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-300">{profileError}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -58,6 +70,15 @@ export default function ProfilingView({
           <h3 className="font-medium text-slate-300">Profiling Results</h3>
           {Object.entries(profiles).map(([fqn, profile]) => (
             <div key={fqn} className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+              {(profile as any).error ? (
+                <div className="p-4 flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-red-400 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-medium text-sm text-slate-300">{fqn}</span>
+                    <p className="text-sm text-red-400 mt-1">{(profile as any).error}</p>
+                  </div>
+                </div>
+              ) : (
               <button onClick={() => setExpanded(expanded === fqn ? null : fqn)} className="w-full flex items-center justify-between p-4 hover:bg-slate-800 transition-colors">
                 <div className="flex items-center gap-3">
                   <BarChart3 size={16} className="text-amber-400" />
@@ -67,6 +88,7 @@ export default function ProfilingView({
                 </div>
                 {expanded === fqn ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
               </button>
+              )}
               {expanded === fqn && (
                 <div className="border-t border-slate-700 p-4 space-y-4">
                   <div className="overflow-x-auto">

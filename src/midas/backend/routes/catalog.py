@@ -10,6 +10,12 @@ logger = logging.getLogger("midas.catalog")
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
 
+@router.get("/me")
+def get_current_user(headers: Dependencies.Headers):
+    """Return current user info from Databricks Apps headers (no extra OAuth scope needed)."""
+    return {"email": headers.user_email or "", "name": headers.user_name or ""}
+
+
 @router.get("/warehouses")
 def list_warehouses(user_ws: Dependencies.UserClient):
     with trace_span("sdk.warehouses.list", route="catalog"):
