@@ -35,13 +35,20 @@ function MidasApp() {
   }, []);
 
   useEffect(() => {
-    api.getWarehouses().then((whs) => {
-      setWarehouses(whs);
-      const running = whs.find((w) => w.state === "RUNNING");
-      if (running) setWarehouseId(running.id);
-      else if (whs.length > 0) setWarehouseId(whs[0].id);
-      setLoadingWarehouses(false);
-    }).catch(() => setLoadingWarehouses(false));
+    const fetchWarehouses = () => {
+      api.getWarehouses().then((whs) => {
+        setWarehouses(whs);
+        setWarehouseId((prev) => {
+          if (prev && whs.some((w) => w.id === prev)) return prev;
+          const running = whs.find((w) => w.state === "RUNNING");
+          return running ? running.id : whs.length > 0 ? whs[0].id : "";
+        });
+        setLoadingWarehouses(false);
+      }).catch(() => setLoadingWarehouses(false));
+    };
+    fetchWarehouses();
+    const interval = setInterval(fetchWarehouses, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
