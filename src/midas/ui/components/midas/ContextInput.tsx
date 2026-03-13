@@ -86,7 +86,11 @@ export default function ContextInput({
 
   const handlePresetChange = (name: string) => {
     setSelectedPreset(name);
-    if (name === "Custom") return;
+    if (name === "Custom") {
+      setTableTemplate("");
+      setColumnTemplate("");
+      return;
+    }
     const preset = PRESET_TEMPLATES.find((p) => p.name === name);
     if (preset) {
       setTableTemplate(preset.table);
@@ -177,8 +181,8 @@ export default function ContextInput({
               <label className="text-sm text-slate-400">Table comment template</label>
               <textarea
                 value={tableTemplate}
-                onChange={(e) => { setTableTemplate(e.target.value); setSelectedPreset("Custom"); }}
-                placeholder={"General Description - ...\nBusiness Value - ...\nKey Relationships - ..."}
+                onChange={(e) => { setTableTemplate(e.target.value); if (selectedPreset !== "Custom") setSelectedPreset("Custom"); }}
+                placeholder={"e.g., General Description - What this table contains\nBusiness Value - Why this data matters\nKey Relationships - Related tables and join patterns"}
                 rows={5}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-amber-500 resize-y"
               />
@@ -187,8 +191,8 @@ export default function ContextInput({
               <label className="text-sm text-slate-400">Column description template</label>
               <textarea
                 value={columnTemplate}
-                onChange={(e) => { setColumnTemplate(e.target.value); setSelectedPreset("Custom"); }}
-                placeholder="Definition and business meaning. Include typical values where relevant."
+                onChange={(e) => { setColumnTemplate(e.target.value); if (selectedPreset !== "Custom") setSelectedPreset("Custom"); }}
+                placeholder="e.g., Definition and business meaning. Include typical value ranges or categories where relevant."
                 rows={2}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-amber-500 resize-y"
               />
