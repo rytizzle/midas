@@ -1,31 +1,32 @@
 # Midas
 
-AI-powered metadata generator for Unity Catalog tables and Genie rooms. Midas profiles your data, generates descriptions using Foundation Models, and applies them back to Unity Catalog -- with full OTel v2 observability built in.
+AI-powered metadata generator for Unity Catalog tables and Genie rooms. Midas profiles your data, generates descriptions using Foundation Models, and applies them back to Unity Catalog. Optional OTel v2 observability can be enabled for full telemetry.
 
 Built with [apx](https://github.com/databricks-solutions/apx) (FastAPI + React + shadcn/ui).
 
 ## What it does
 
-1. **Browse** catalogs, schemas, and tables -- or import from a Genie room
-2. **Select a warehouse** from those you have access to
-3. **Profile** tables to understand data distributions and patterns
-4. **Generate** table and column descriptions using an LLM (Foundation Model API)
-5. **Review & edit** generated metadata before applying
-6. **Apply** metadata back to Unity Catalog (with undo support)
-7. **Observe** every operation via OTel v2 telemetry (always-on, behind the scenes)
+1. **Browse** catalogs, schemas, and tables (including views and materialized views) -- or import from a Genie room
+2. **Select a warehouse** from those you have access to (live status updates every 30s)
+3. **Choose a description template** -- presets for Genie, governance, or business glossary, or define your own custom format
+4. **Profile** tables to understand data distributions and patterns (optimized to 3 queries per table)
+5. **Generate** table and column descriptions using an LLM (Foundation Model API)
+6. **Review & edit** generated metadata -- expand/collapse tables, reject individual suggestions, or keep existing descriptions
+7. **Apply** metadata back to Unity Catalog (with undo support, works on tables, views, and materialized views)
+8. **Observe** (optional) every operation via OTel v2 telemetry -- disabled by default, enable with `otel_enabled: "true"`
 
 ## Architecture
 
 ```
 Databricks App (FastAPI + React)
-  |-- /api/catalog/*       Browse UC catalogs/schemas/tables (OBO auth)
-  |-- /api/profiling/*     Profile table data via user-selected warehouse
+  |-- /api/catalog/*       Browse UC catalogs/schemas/tables, warehouse list (OBO auth)
+  |-- /api/profiling/*     Profile table data via user-selected warehouse (3 queries/table)
   |-- /api/metadata/*      Generate descriptions via Foundation Model API
-  |-- /api/apply/*         Write metadata back to UC via user-selected warehouse
+  |-- /api/apply/*         Write metadata back to UC (tables, views, MVs) via user warehouse
   |-- /api/genie/*         Browse and link Genie rooms
-  +-- telemetry.py         Async OTel v2 span/log writer -> Delta tables (SP warehouse)
+  +-- telemetry.py         Async OTel v2 span/log writer -> Delta tables (optional, SP warehouse)
 
-OTel Pipeline (DLT Serverless)
+OTel Pipeline (DLT Serverless) -- only deployed when otel_enabled: "true"
   Bronze: spans, logs, metrics     <- written by app SP at runtime
   Silver: parsed, cleaned, enriched
   Gold:   service health, operation perf, error analysis, LLM usage
@@ -71,10 +72,12 @@ Users select their own warehouse from the dropdown. The SP writes telemetry to a
 - Python 3 (for deploy script helpers)
 - A Databricks workspace with:
   - Unity Catalog enabled
-  - A SQL warehouse (the deployer needs `CAN_MANAGE` on it)
+  - A SQL warehouse
   - Foundation Model API enabled (serving endpoint)
 
 The repo includes a pre-built `.build/` directory so no additional build tools (Node.js, apx) are needed for deployment.
+
+> **Note:** If OTel is disabled (the default), the deployer only needs basic workspace permissions. The `CAN_MANAGE` warehouse requirement only applies when `otel_enabled: "true"` (to grant the SP `CAN_USE` on the OTel warehouse).
 
 ## Quick start
 
@@ -101,7 +104,7 @@ targets:
       # otel_observability_schema: otel_observability  # default
 ```
 
-Only `otel_warehouse_id` and `otel_catalog` are required. Everything else has defaults.
+If OTel is disabled (default), only `serving_endpoint` matters (and it has a default). The `otel_*` variables are only required when `otel_enabled: "true"`.
 
 ### 3. Deploy
 
@@ -117,19 +120,17 @@ This single command will:
 - Grant the app's service principal access to OTel catalog and schemas
 - Deploy the app code
 
-### 4. Run the OTel setup job
+### 4. (Optional) Set up OTel telemetry
 
-After the first deploy, run the bronze table setup job once from the Databricks UI:
+If you set `otel_enabled: "true"`, run the bronze table setup job once after the first deploy:
 
 **Workflows > midas-otel-setup-bronze > Run now**
 
-This creates the empty bronze tables. After that, the app writes telemetry automatically.
-
-### 5. Run the DLT pipeline
-
-Trigger the pipeline manually the first time, or wait for the hourly schedule:
+Then trigger the DLT pipeline manually the first time, or wait for the hourly schedule:
 
 **Workflows > midas-otel-scheduled > Run now**
+
+If OTel is disabled (the default), skip this step -- the app works without telemetry.
 
 ## Configuration reference
 
@@ -137,8 +138,9 @@ All configuration lives in `databricks.yml` under `targets.<name>.variables`:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `otel_warehouse_id` | yes | -- | SQL warehouse ID for OTel telemetry writes (SP) |
-| `otel_catalog` | yes | -- | Catalog for OTel tables |
+| `otel_enabled` | no | `false` | Enable OTel telemetry collection |
+| `otel_warehouse_id` | if OTel on | -- | SQL warehouse ID for OTel telemetry writes (SP) |
+| `otel_catalog` | if OTel on | -- | Catalog for OTel tables |
 | `serving_endpoint` | no | `databricks-gpt-5-4` | Foundation Model serving endpoint |
 | `otel_raw_schema` | no | `otel_raw` | Schema for bronze OTel tables |
 | `otel_observability_schema` | no | `otel_observability` | Schema for silver/gold DLT tables |
@@ -148,9 +150,11 @@ Users browse **all catalogs they have access to** via the app UI -- no catalog c
 ## Deployer requirements
 
 The person running `./deploy.sh` needs:
-- `CAN_MANAGE` on the SQL warehouse (to grant SP `CAN_USE`)
-- Ability to create schemas in the OTel catalog
 - Workspace admin or sufficient privileges to create apps
+
+If `otel_enabled: "true"`, the deployer also needs:
+- `CAN_MANAGE` on the OTel SQL warehouse (to grant SP `CAN_USE`)
+- Ability to create schemas in the OTel catalog
 
 ## Local development
 
