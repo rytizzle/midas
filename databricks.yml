@@ -1,0 +1,36 @@
+bundle:
+  name: midas
+
+variables:
+  serving_endpoint:
+    description: "Foundation Model serving endpoint name"
+    default: databricks-gpt-5-4
+
+sync:
+  include:
+    - .build
+
+resources:
+  apps:
+    midas-app:
+      name: "midas"
+      description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
+      source_code_path: ./.build
+      permissions:
+        - user_name: ${workspace.current_user.userName}
+          level: CAN_MANAGE
+
+targets:
+  dev:
+    default: true
+    workspace:
+      profile: DEFAULT
+    variables:
+      serving_endpoint: databricks-gpt-5-4
+
+  # Example: customer or second workspace
+  # prod:
+  #   workspace:
+  #     profile: customer-workspace
+  #   variables:
+  #     serving_endpoint: databricks-gpt-5-4

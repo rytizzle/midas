@@ -1,0 +1,1 @@
+command: ["uvicorn", "midas.backend.app:app", "--workers", "2"]
