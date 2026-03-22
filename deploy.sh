@@ -48,11 +48,6 @@ echo "    Deployer:             $DEPLOYER_EMAIL"
 echo "    Serving Endpoint:     $SERVING_ENDPOINT"
 echo ""
 
-# ── Inject runtime config into .build/app.yml ──
-cat > "$(dirname "$0")/.build/app.yml" <<EOF
-command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
-EOF
-
 # Use pre-built .build/ if it exists, otherwise build with apx
 if [ -d "$(dirname "$0")/.build" ]; then
     echo "==> Using pre-built .build/"
@@ -63,6 +58,11 @@ else
     echo "ERROR: .build/ directory not found and apx is not installed. Either pull .build/ from git or install apx (pip install databricks-apx)."
     exit 1
 fi
+
+# ── Inject runtime config into .build/app.yml ──
+cat > "$(dirname "$0")/.build/app.yml" <<EOF
+command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+EOF
 
 echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
