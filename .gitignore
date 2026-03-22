@@ -2,6 +2,7 @@
 __pycache__/
 *.py[oc]
 build/
+!.build/
 dist/
 wheels/
 *.egg-info
@@ -37,5 +38,5 @@ deploy.env
 # apx
 .apx/
 
-# UI dist folder
-src/midas/__dist__/
+# UI dist folder (tracked — needed for wheel builds without npm)
+# src/midas/__dist__/
