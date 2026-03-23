@@ -64,6 +64,29 @@ cat > "$(dirname "$0")/.build/app.yml" <<EOF
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 EOF
 
+# ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
+if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
+    echo "==> App '$APP_NAME' not found — pre-creating..."
+    databricks apps create -p "$PROFILE" --json "{\"name\": \"$APP_NAME\", \"description\": \"Midas - AI Metadata Generator\"}" --no-wait
+fi
+
+# ── Wait for compute to be ACTIVE or STOPPED before bundle deploy ──
+APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
+    echo "==> Waiting for app compute to be ready (current: $APP_STATE)..."
+    for i in $(seq 1 30); do
+        APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+        [ "$APP_STATE" = "ACTIVE" ] || [ "$APP_STATE" = "STOPPED" ] && break
+        sleep 10
+    done
+    if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
+        echo "ERROR: App compute did not become ready (current: $APP_STATE). Aborting."
+        exit 1
+    fi
+fi
+
 echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
 
@@ -79,6 +102,31 @@ databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
     {\"name\": \"serving-endpoint\", \"serving_endpoint\": {\"name\": \"${SERVING_ENDPOINT}\", \"permission\": \"CAN_QUERY\"}}
   ]
 }"
+
+# ── Ensure compute is running before code deploy ──
+APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+
+if [ "$APP_STATE" = "STOPPED" ]; then
+    echo "==> App compute is stopped — starting..."
+    databricks apps start "$APP_NAME" -p "$PROFILE" --no-wait
+    APP_STATE="STARTING"
+fi
+
+if [ "$APP_STATE" != "ACTIVE" ]; then
+    echo "==> Waiting for compute to become active (current: $APP_STATE)..."
+    for i in $(seq 1 30); do
+        APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+        [ "$APP_STATE" = "ACTIVE" ] && break
+        sleep 10
+    done
+fi
+
+if [ "$APP_STATE" != "ACTIVE" ]; then
+    echo "ERROR: App compute did not reach ACTIVE state (current: $APP_STATE). Aborting."
+    exit 1
+fi
 
 echo "==> Deploying app code..."
 databricks apps deploy "$APP_NAME" --source-code-path "$SOURCE_PATH" -p "$PROFILE"
