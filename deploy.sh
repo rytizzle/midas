@@ -75,14 +75,14 @@ APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/n
     | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
 if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
     echo "==> Waiting for app compute to be ready (current: $APP_STATE)..."
-    for i in $(seq 1 30); do
+    for i in $(seq 1 60); do
         APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
             | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
         [ "$APP_STATE" = "ACTIVE" ] || [ "$APP_STATE" = "STOPPED" ] && break
         sleep 10
     done
     if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
-        echo "ERROR: App compute did not become ready (current: $APP_STATE). Aborting."
+        echo "ERROR: App compute did not become ready after 10 minutes (current: $APP_STATE). Aborting."
         exit 1
     fi
 fi
