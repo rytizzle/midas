@@ -8,7 +8,7 @@ import MetadataReview from "@/components/midas/MetadataReview";
 import ApplyChanges from "@/components/midas/ApplyChanges";
 import { api } from "@/lib/midas-api";
 import type { TableInfo, ProfileResult, GeneratedMetadata, WarehouseInfo } from "@/lib/midas-api";
-import { Sparkles, Database, User, ChevronDown, ChevronRight } from "lucide-react";
+import { Sparkles, Database, User, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: () => <MidasApp />,
@@ -47,6 +47,14 @@ function MidasApp() {
   const [loadingWarehouses, setLoadingWarehouses] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
 
+  const handleStartOver = () => {
+    setStep(0);
+    setSelectedTables([]);
+    setContext((prev) => ({ ...prev, blurb: "", docs: "" }));
+    setProfiles(null);
+    setMetadata(null);
+  };
+
   useEffect(() => {
     api.getMe().then((u) => setUserEmail(u.email)).catch(() => {});
   }, []);
@@ -78,6 +86,14 @@ function MidasApp() {
             <span className="text-sm text-slate-500">AI Metadata for Genie</span>
           </div>
           <div className="flex items-center gap-4">
+            {step > 0 && (
+              <button
+                onClick={handleStartOver}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-amber-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-amber-500/50 rounded-full transition-all"
+              >
+                <RotateCcw size={12} /> New Run
+              </button>
+            )}
             {userEmail && (
               <span className="flex items-center gap-1.5 text-xs text-slate-500">
                 <User size={12} />
@@ -181,13 +197,7 @@ function MidasApp() {
                 tables={selectedTables}
                 metadata={metadata}
                 onBack={() => setStep(3)}
-                onStartOver={() => {
-                  setStep(0);
-                  setSelectedTables([]);
-                  setContext({ blurb: "", docs: "", tableTemplate: context.tableTemplate, columnTemplate: context.columnTemplate });
-                  setProfiles(null);
-                  setMetadata(null);
-                }}
+                onStartOver={handleStartOver}
                 warehouseId={warehouseId}
               />
             )}
