@@ -44,10 +44,10 @@ def generate_table_metadata(
 
     # Build table comment instructions based on template
     if table_template:
-        table_instruction = f"""1. "table_comment": A structured description using EXACTLY this format (fill in each section with specific details from the data):
+        table_instruction = f"""1. "table_comment": A flowing prose description (no section headings or labels). Use the following template ONLY as a guide for what topics to cover, but write it as clean continuous text:
 {table_template}
 
-Do NOT mention row counts or number of records — tables change over time."""
+Do NOT include section headings like "General Description" or "Business Value" in the output. Do NOT mention row counts or number of records — tables change over time."""
     else:
         table_instruction = '1. "table_comment": A 1-2 sentence description of what this table contains. Reference specific data patterns you observe. Do NOT mention row counts or number of records — tables change over time.'
 
