@@ -181,6 +181,13 @@ function MidasApp() {
                 tables={selectedTables}
                 metadata={metadata}
                 onBack={() => setStep(3)}
+                onStartOver={() => {
+                  setStep(0);
+                  setSelectedTables([]);
+                  setContext({ blurb: "", docs: "", tableTemplate: context.tableTemplate, columnTemplate: context.columnTemplate });
+                  setProfiles(null);
+                  setMetadata(null);
+                }}
                 warehouseId={warehouseId}
               />
             )}
