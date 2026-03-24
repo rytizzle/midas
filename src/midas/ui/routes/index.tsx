@@ -84,6 +84,7 @@ function MidasApp() {
             <Sparkles size={24} className="text-amber-400" />
             <h1 className="text-xl font-bold text-slate-100">Midas</h1>
             <span className="text-sm text-slate-500">AI Metadata for Genie</span>
+            <span className="text-[10px] text-slate-600 font-mono">v0.2.0</span>
           </div>
           <div className="flex items-center gap-4">
             {step > 0 && (
