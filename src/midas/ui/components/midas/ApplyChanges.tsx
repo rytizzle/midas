@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { api, type TableInfo, type GeneratedMetadata, type ApplyResult } from "@/lib/midas-api";
-import { CheckCircle2, XCircle, Loader2, Undo2, AlertTriangle, Rocket } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Undo2, AlertTriangle, Rocket, RotateCcw } from "lucide-react";
 
 export default function ApplyChanges({
-  tables, metadata, onBack, warehouseId,
+  tables, metadata, onBack, onStartOver, warehouseId,
 }: {
   tables: TableInfo[];
   metadata: Record<string, GeneratedMetadata>;
   onBack: () => void;
+  onStartOver: () => void;
   warehouseId: string;
 }) {
   const [results, setResults] = useState<ApplyResult[] | null>(null);
@@ -143,6 +144,11 @@ export default function ApplyChanges({
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-700">
         <button onClick={onBack} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg font-medium transition-colors">Back</button>
+        {results && (
+          <button onClick={onStartOver} className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+            <RotateCcw size={16} /> Start Over
+          </button>
+        )}
       </div>
     </div>
   );

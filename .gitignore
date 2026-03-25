@@ -39,4 +39,4 @@ deploy.env
 .apx/
 
 # UI dist folder (tracked — needed for wheel builds without npm)
-# src/midas/__dist__/
+# src/midas/__dist__/src/__dist__/
