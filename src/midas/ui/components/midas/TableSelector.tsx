@@ -50,6 +50,10 @@ export default function TableSelector({
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomPermError, setRoomPermError] = useState(false);
   const [search, setSearch] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [schemaSearch, setSchemaSearch] = useState("");
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [schemaOpen, setSchemaOpen] = useState(false);
   const [showSelected, setShowSelected] = useState(false);
   const [permChecking, setPermChecking] = useState(false);
   const [permissions, setPermissions] = useState<Record<string, PermissionResult> | null>(null);
@@ -144,21 +148,58 @@ export default function TableSelector({
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-400">Catalog</label>
             <div className="relative">
-              <select value={catalog} onChange={(e) => setCatalog(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 appearance-none cursor-pointer focus:outline-none focus:border-amber-500">
-                <option value="">Select a catalog...</option>
-                {catalogs.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none" />
+              <Search size={16} className="absolute left-3 top-3 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search catalogs..."
+                value={catalogOpen ? catalogSearch : catalog}
+                onFocus={() => { setCatalogOpen(true); setCatalogSearch(""); }}
+                onBlur={() => setTimeout(() => setCatalogOpen(false), 150)}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-8 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
+              />
+              {catalog && !catalogOpen && (
+                <button onClick={() => { setCatalog(""); setSchema(""); setCatalogOpen(true); setCatalogSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
+              )}
+              {catalogOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                  {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
+                    <button key={c.name} onMouseDown={() => { setCatalog(c.name); setSchema(""); setCatalogOpen(false); setCatalogSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{c.name}</button>
+                  ))}
+                  {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 && (
+                    <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-400">Schema</label>
             <div className="relative">
-              <select value={schema} onChange={(e) => setSchema(e.target.value)} disabled={!catalog} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 appearance-none cursor-pointer focus:outline-none focus:border-amber-500 disabled:opacity-50">
-                <option value="">Select a schema...</option>
-                {schemas.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none" />
+              <Search size={16} className="absolute left-3 top-3 text-slate-500" />
+              <input
+                type="text"
+                placeholder={catalog ? "Search schemas..." : "Select a catalog first..."}
+                value={schemaOpen ? schemaSearch : schema}
+                disabled={!catalog}
+                onFocus={() => { setSchemaOpen(true); setSchemaSearch(""); }}
+                onBlur={() => setTimeout(() => setSchemaOpen(false), 150)}
+                onChange={(e) => setSchemaSearch(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-8 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 disabled:opacity-50"
+              />
+              {schema && !schemaOpen && (
+                <button onClick={() => { setSchema(""); setSchemaOpen(true); setSchemaSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
+              )}
+              {schemaOpen && catalog && (
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).map((s) => (
+                    <button key={s.name} onMouseDown={() => { setSchema(s.name); setSchemaOpen(false); setSchemaSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{s.name}</button>
+                  ))}
+                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).length === 0 && (
+                    <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
