@@ -64,14 +64,9 @@ export default function TableSelector({
 
   useEffect(() => {
     api.getCatalogs().then(setCatalogs).catch(console.error).finally(() => setCatalogsLoading(false));
+    setRoomsLoading(true);
+    api.getGenieRooms().then(setRooms).catch(console.error).finally(() => setRoomsLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (mode === "genie" && rooms.length === 0) {
-      setRoomsLoading(true);
-      api.getGenieRooms().then(setRooms).catch(console.error).finally(() => setRoomsLoading(false));
-    }
-  }, [mode]);
 
   useEffect(() => {
     if (!catalog) return;
@@ -165,7 +160,7 @@ export default function TableSelector({
                 <button onClick={() => { setCatalog(""); setSchema(""); setCatalogOpen(true); setCatalogSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
               )}
               {catalogOpen && (
-                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-96 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-[28rem] overflow-y-auto shadow-lg">
                   {catalogsLoading ? (
                     <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading catalogs...</div>
                   ) : (
@@ -200,7 +195,7 @@ export default function TableSelector({
                 <button onClick={() => { setSchema(""); setSchemaOpen(true); setSchemaSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
               )}
               {schemaOpen && catalog && (
-                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-96 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-[28rem] overflow-y-auto shadow-lg">
                   {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)).map((s) => (
                     <button key={s.name} onMouseDown={() => { setSchema(s.name); setSchemaOpen(false); setSchemaSearch(""); }} className="w-full text-left px-4 py-2.5 text-base text-slate-200 hover:bg-slate-700 transition-colors">{s.name}</button>
                   ))}
@@ -230,7 +225,7 @@ export default function TableSelector({
               <button onClick={() => { setRoomId(""); setRoomTables([]); setRoomPermError(false); setRoomOpen(true); setRoomSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
             )}
             {roomOpen && (
-              <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-96 overflow-y-auto shadow-lg">
+              <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-[28rem] overflow-y-auto shadow-lg">
                 {roomsLoading ? (
                   <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading rooms...</div>
                 ) : (
@@ -267,7 +262,7 @@ export default function TableSelector({
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 size={24} className="animate-spin mr-2" /> Loading tables...</div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-2 max-h-[28rem] overflow-y-auto">
               {filtered.map((t) => {
                 const isSelected = selected.some((s) => s.full_name === t.full_name);
                 return (
