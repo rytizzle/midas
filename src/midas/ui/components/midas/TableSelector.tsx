@@ -162,7 +162,7 @@ export default function TableSelector({
                 <button onClick={() => { setCatalog(""); setSchema(""); setCatalogOpen(true); setCatalogSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
               )}
               {catalogOpen && (
-                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-80 overflow-y-auto shadow-lg">
                   {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
                     <button key={c.name} onMouseDown={() => { setCatalog(c.name); setSchema(""); setCatalogOpen(false); setCatalogSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{c.name}</button>
                   ))}
@@ -191,7 +191,7 @@ export default function TableSelector({
                 <button onClick={() => { setSchema(""); setSchemaOpen(true); setSchemaSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
               )}
               {schemaOpen && catalog && (
-                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto shadow-lg">
+                <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-80 overflow-y-auto shadow-lg">
                   {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).map((s) => (
                     <button key={s.name} onMouseDown={() => { setSchema(s.name); setSchemaOpen(false); setSchemaSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{s.name}</button>
                   ))}
