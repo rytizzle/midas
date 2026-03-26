@@ -7,7 +7,7 @@ import ProfilingView from "@/components/midas/ProfilingView";
 import MetadataReview from "@/components/midas/MetadataReview";
 import ApplyChanges from "@/components/midas/ApplyChanges";
 import { api } from "@/lib/midas-api";
-import type { TableInfo, ProfileResult, GeneratedMetadata, WarehouseInfo } from "@/lib/midas-api";
+import type { TableInfo, ProfileResult, GeneratedMetadata, WarehouseInfo, CatalogInfo, GenieRoom } from "@/lib/midas-api";
 import { Sparkles, Database, User, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -46,6 +46,8 @@ function MidasApp() {
   const [warehouseId, setWarehouseId] = useState<string>("");
   const [loadingWarehouses, setLoadingWarehouses] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [prefetchedCatalogs, setPrefetchedCatalogs] = useState<CatalogInfo[] | null>(null);
+  const [prefetchedRooms, setPrefetchedRooms] = useState<{ rooms: GenieRoom[]; next_page_token: string | null } | null>(null);
 
   const handleStartOver = () => {
     setStep(0);
@@ -57,6 +59,8 @@ function MidasApp() {
 
   useEffect(() => {
     api.getMe().then((u) => setUserEmail(u.email)).catch(() => {});
+    api.getCatalogs().then(setPrefetchedCatalogs).catch(() => {});
+    api.getGenieRooms().then(setPrefetchedRooms).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -160,6 +164,8 @@ function MidasApp() {
                 onSelect={setSelectedTables}
                 onNext={() => setStep(1)}
                 warehouseId={warehouseId}
+                prefetchedCatalogs={prefetchedCatalogs}
+                prefetchedRooms={prefetchedRooms}
               />
             )}
             {step === 1 && (

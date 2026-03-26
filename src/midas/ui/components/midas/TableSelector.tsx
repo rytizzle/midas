@@ -30,11 +30,15 @@ export default function TableSelector({
   onSelect,
   onNext,
   warehouseId,
+  prefetchedCatalogs,
+  prefetchedRooms,
 }: {
   selected: TableInfo[];
   onSelect: (tables: TableInfo[]) => void;
   onNext: () => void;
   warehouseId: string;
+  prefetchedCatalogs?: CatalogInfo[] | null;
+  prefetchedRooms?: { rooms: GenieRoom[]; next_page_token: string | null } | null;
 }) {
   const [mode, setMode] = useState<SourceMode>("catalog");
   const [catalogs, setCatalogs] = useState<CatalogInfo[]>([]);
@@ -66,13 +70,23 @@ export default function TableSelector({
   const [permDismissed, setPermDismissed] = useState(false);
 
   useEffect(() => {
-    api.getCatalogs().then(setCatalogs).catch(console.error).finally(() => setCatalogsLoading(false));
-    setRoomsLoading(true);
-    api.getGenieRooms().then((data) => {
-      setRooms(data.rooms);
-      setRoomsNextToken(data.next_page_token);
-    }).catch(console.error).finally(() => setRoomsLoading(false));
-  }, []);
+    if (prefetchedCatalogs) {
+      setCatalogs(prefetchedCatalogs);
+      setCatalogsLoading(false);
+    } else {
+      api.getCatalogs().then(setCatalogs).catch(console.error).finally(() => setCatalogsLoading(false));
+    }
+    if (prefetchedRooms) {
+      setRooms(prefetchedRooms.rooms);
+      setRoomsNextToken(prefetchedRooms.next_page_token);
+    } else {
+      setRoomsLoading(true);
+      api.getGenieRooms().then((data) => {
+        setRooms(data.rooms);
+        setRoomsNextToken(data.next_page_token);
+      }).catch(console.error).finally(() => setRoomsLoading(false));
+    }
+  }, [prefetchedCatalogs, prefetchedRooms]);
 
   const loadMoreRooms = useCallback(() => {
     if (!roomsNextToken || roomsLoadingMore) return;
