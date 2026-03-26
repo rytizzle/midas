@@ -54,13 +54,16 @@ export default function TableSelector({
   const [schemaSearch, setSchemaSearch] = useState("");
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [schemaOpen, setSchemaOpen] = useState(false);
+  const [roomSearch, setRoomSearch] = useState("");
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [catalogsLoading, setCatalogsLoading] = useState(true);
   const [showSelected, setShowSelected] = useState(false);
   const [permChecking, setPermChecking] = useState(false);
   const [permissions, setPermissions] = useState<Record<string, PermissionResult> | null>(null);
   const [permDismissed, setPermDismissed] = useState(false);
 
   useEffect(() => {
-    api.getCatalogs().then(setCatalogs).catch(console.error);
+    api.getCatalogs().then(setCatalogs).catch(console.error).finally(() => setCatalogsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -163,11 +166,17 @@ export default function TableSelector({
               )}
               {catalogOpen && (
                 <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-80 overflow-y-auto shadow-lg">
-                  {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
-                    <button key={c.name} onMouseDown={() => { setCatalog(c.name); setSchema(""); setCatalogOpen(false); setCatalogSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{c.name}</button>
-                  ))}
-                  {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 && (
-                    <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
+                  {catalogsLoading ? (
+                    <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading catalogs...</div>
+                  ) : (
+                    <>
+                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
+                        <button key={c.name} onMouseDown={() => { setCatalog(c.name); setSchema(""); setCatalogOpen(false); setCatalogSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{c.name}</button>
+                      ))}
+                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -206,17 +215,37 @@ export default function TableSelector({
       ) : (
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-400">Genie Room</label>
-          {roomsLoading ? (
-            <div className="flex items-center gap-2 py-3 text-slate-400 text-sm"><Loader2 size={16} className="animate-spin" /> Loading rooms...</div>
-          ) : (
-            <div className="relative">
-              <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 appearance-none cursor-pointer focus:outline-none focus:border-amber-500">
-                <option value="">Select a Genie room...</option>
-                {rooms.map((r) => <option key={r.space_id} value={r.space_id}>{r.title}</option>)}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none" />
-            </div>
-          )}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-3 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search Genie rooms..."
+              value={roomOpen ? roomSearch : (rooms.find((r) => r.space_id === roomId)?.title || "")}
+              onFocus={() => { setRoomOpen(true); setRoomSearch(""); }}
+              onBlur={() => setTimeout(() => setRoomOpen(false), 150)}
+              onChange={(e) => setRoomSearch(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-8 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
+            />
+            {roomId && !roomOpen && (
+              <button onClick={() => { setRoomId(""); setRoomTables([]); setRoomPermError(false); setRoomOpen(true); setRoomSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
+            )}
+            {roomOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-80 overflow-y-auto shadow-lg">
+                {roomsLoading ? (
+                  <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading rooms...</div>
+                ) : (
+                  <>
+                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).map((r) => (
+                      <button key={r.space_id} onMouseDown={() => { setRoomId(r.space_id); setRoomOpen(false); setRoomSearch(""); }} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors">{r.title}</button>
+                    ))}
+                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).length === 0 && (
+                      <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           {roomPermError && (
             <div className="flex items-start gap-2 mt-2 p-3 bg-amber-950/40 border border-amber-700/50 rounded-lg">
               <AlertTriangle size={16} className="text-amber-400 mt-0.5 shrink-0" />

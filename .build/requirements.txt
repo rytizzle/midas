@@ -1,1 +1,1 @@
-midas-0.0.0.post24.dev0+b0ada9d-py3-none-any.whl
+midas-0.0.0.post25.dev0+ffbbd45-py3-none-any.whl
