@@ -96,7 +96,10 @@ export interface UserInfo {
 export const api = {
   getMe: () => request<UserInfo>("/api/catalog/me"),
   getWarehouses: () => request<WarehouseInfo[]>("/api/catalog/warehouses"),
-  getGenieRooms: () => request<GenieRoom[]>("/api/genie/rooms"),
+  getGenieRooms: (pageToken?: string) =>
+    request<{ rooms: GenieRoom[]; next_page_token: string | null }>(
+      pageToken ? `/api/genie/rooms?page_token=${encodeURIComponent(pageToken)}` : "/api/genie/rooms"
+    ),
   getGenieRoomTables: (spaceId: string) =>
     request<GenieRoomDetail>(`/api/genie/rooms/${encodeURIComponent(spaceId)}/tables`),
   checkPermissions: (tables: string[], warehouseId: string) =>

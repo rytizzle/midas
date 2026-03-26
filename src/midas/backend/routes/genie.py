@@ -12,8 +12,8 @@ _room_links: dict[str, dict] = {}
 
 
 @router.get("/rooms")
-def list_rooms(user_ws: Dependencies.UserClient):
-    resp = user_ws.genie.list_spaces()
+def list_rooms(user_ws: Dependencies.UserClient, page_token: str | None = None):
+    resp = user_ws.genie.list_spaces(page_token=page_token) if page_token else user_ws.genie.list_spaces()
     rooms = []
     for s in (resp.spaces or []):
         link = _room_links.get(s.space_id)
@@ -25,7 +25,7 @@ def list_rooms(user_ws: Dependencies.UserClient):
             "catalog": link["catalog"] if link else None,
             "schema": link["schema"] if link else None,
         })
-    return rooms
+    return {"rooms": rooms, "next_page_token": resp.next_page_token or None}
 
 
 @router.get("/rooms/{space_id}/tables")

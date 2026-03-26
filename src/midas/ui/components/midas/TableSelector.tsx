@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   api,
   type CatalogInfo,
@@ -48,7 +48,10 @@ export default function TableSelector({
   const [roomTables, setRoomTables] = useState<TableInfo[]>([]);
   const [roomLoading, setRoomLoading] = useState(false);
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomsLoadingMore, setRoomsLoadingMore] = useState(false);
+  const [roomsNextToken, setRoomsNextToken] = useState<string | null>(null);
   const [roomPermError, setRoomPermError] = useState(false);
+  const roomsListRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [schemaSearch, setSchemaSearch] = useState("");
@@ -65,8 +68,27 @@ export default function TableSelector({
   useEffect(() => {
     api.getCatalogs().then(setCatalogs).catch(console.error).finally(() => setCatalogsLoading(false));
     setRoomsLoading(true);
-    api.getGenieRooms().then(setRooms).catch(console.error).finally(() => setRoomsLoading(false));
+    api.getGenieRooms().then((data) => {
+      setRooms(data.rooms);
+      setRoomsNextToken(data.next_page_token);
+    }).catch(console.error).finally(() => setRoomsLoading(false));
   }, []);
+
+  const loadMoreRooms = useCallback(() => {
+    if (!roomsNextToken || roomsLoadingMore) return;
+    setRoomsLoadingMore(true);
+    api.getGenieRooms(roomsNextToken).then((data) => {
+      setRooms((prev) => [...prev, ...data.rooms]);
+      setRoomsNextToken(data.next_page_token);
+    }).catch(console.error).finally(() => setRoomsLoadingMore(false));
+  }, [roomsNextToken, roomsLoadingMore]);
+
+  const handleRoomsScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+      loadMoreRooms();
+    }
+  }, [loadMoreRooms]);
 
   useEffect(() => {
     if (!catalog) return;
@@ -225,7 +247,7 @@ export default function TableSelector({
               <button onClick={() => { setRoomId(""); setRoomTables([]); setRoomPermError(false); setRoomOpen(true); setRoomSearch(""); }} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300"><X size={16} /></button>
             )}
             {roomOpen && (
-              <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-[28rem] overflow-y-auto shadow-lg">
+              <div ref={roomsListRef} onScroll={handleRoomsScroll} className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-[28rem] overflow-y-auto shadow-lg">
                 {roomsLoading ? (
                   <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading rooms...</div>
                 ) : (
@@ -233,7 +255,10 @@ export default function TableSelector({
                     {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title)).map((r) => (
                       <button key={r.space_id} onMouseDown={() => { setRoomId(r.space_id); setRoomOpen(false); setRoomSearch(""); }} className="w-full text-left px-4 py-2.5 text-base text-slate-200 hover:bg-slate-700 transition-colors">{r.title}</button>
                     ))}
-                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title)).length === 0 && (
+                    {roomsLoadingMore && (
+                      <div className="flex items-center gap-2 px-4 py-2 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading more...</div>
+                    )}
+                    {!roomsLoadingMore && rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).length === 0 && (
                       <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
                     )}
                   </>
