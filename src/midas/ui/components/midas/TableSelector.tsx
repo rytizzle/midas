@@ -170,10 +170,10 @@ export default function TableSelector({
                     <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading catalogs...</div>
                   ) : (
                     <>
-                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c) => (
+                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
                         <button key={c.name} onMouseDown={() => { setCatalog(c.name); setSchema(""); setCatalogOpen(false); setCatalogSearch(""); }} className="w-full text-left px-4 py-2.5 text-base text-slate-200 hover:bg-slate-700 transition-colors">{c.name}</button>
                       ))}
-                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 && (
+                      {catalogs.filter((c) => c.name.toLowerCase().includes(catalogSearch.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)).length === 0 && (
                         <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
                       )}
                     </>
@@ -201,10 +201,10 @@ export default function TableSelector({
               )}
               {schemaOpen && catalog && (
                 <div className="absolute z-20 mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg max-h-96 overflow-y-auto shadow-lg">
-                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).map((s) => (
+                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)).map((s) => (
                     <button key={s.name} onMouseDown={() => { setSchema(s.name); setSchemaOpen(false); setSchemaSearch(""); }} className="w-full text-left px-4 py-2.5 text-base text-slate-200 hover:bg-slate-700 transition-colors">{s.name}</button>
                   ))}
-                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).length === 0 && (
+                  {schemas.filter((s) => s.name.toLowerCase().includes(schemaSearch.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)).length === 0 && (
                     <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
                   )}
                 </div>
@@ -235,10 +235,10 @@ export default function TableSelector({
                   <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading rooms...</div>
                 ) : (
                   <>
-                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).map((r) => (
+                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title)).map((r) => (
                       <button key={r.space_id} onMouseDown={() => { setRoomId(r.space_id); setRoomOpen(false); setRoomSearch(""); }} className="w-full text-left px-4 py-2.5 text-base text-slate-200 hover:bg-slate-700 transition-colors">{r.title}</button>
                     ))}
-                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).length === 0 && (
+                    {rooms.filter((r) => r.title.toLowerCase().includes(roomSearch.toLowerCase())).sort((a, b) => a.title.localeCompare(b.title)).length === 0 && (
                       <div className="px-4 py-2 text-sm text-slate-500">No matches</div>
                     )}
                   </>
