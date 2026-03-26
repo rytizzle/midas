@@ -74,6 +74,7 @@ export interface GenieRoom {
 }
 export interface GenieRoomDetail extends GenieRoom {
   tables: TableInfo[];
+  error?: string;
 }
 export interface PermissionResult {
   can_modify: boolean;

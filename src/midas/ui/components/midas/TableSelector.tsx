@@ -48,6 +48,7 @@ export default function TableSelector({
   const [roomTables, setRoomTables] = useState<TableInfo[]>([]);
   const [roomLoading, setRoomLoading] = useState(false);
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomPermError, setRoomPermError] = useState(false);
   const [search, setSearch] = useState("");
   const [showSelected, setShowSelected] = useState(false);
   const [permChecking, setPermChecking] = useState(false);
@@ -81,7 +82,11 @@ export default function TableSelector({
   useEffect(() => {
     if (!roomId) return;
     setRoomLoading(true);
-    api.getGenieRoomTables(roomId).then((detail) => setRoomTables(detail.tables)).catch(console.error).finally(() => setRoomLoading(false));
+    setRoomPermError(false);
+    api.getGenieRoomTables(roomId).then((detail) => {
+      setRoomTables(detail.tables);
+      if (detail.error === "needs_edit_permission") setRoomPermError(true);
+    }).catch(console.error).finally(() => setRoomLoading(false));
   }, [roomId]);
 
   useEffect(() => {
@@ -169,6 +174,14 @@ export default function TableSelector({
                 {rooms.map((r) => <option key={r.space_id} value={r.space_id}>{r.title}</option>)}
               </select>
               <ChevronDown size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none" />
+            </div>
+          )}
+          {roomPermError && (
+            <div className="flex items-start gap-2 mt-2 p-3 bg-amber-950/40 border border-amber-700/50 rounded-lg">
+              <AlertTriangle size={16} className="text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-slate-400">
+                <span className="text-amber-400 font-medium">CAN EDIT required.</span> You need Edit access on this Genie space to import its tables. Ask the space owner to grant you Edit permission, or select tables manually from the Catalog tab.
+              </p>
             </div>
           )}
         </div>

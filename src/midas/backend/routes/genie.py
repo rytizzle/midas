@@ -32,19 +32,30 @@ def list_rooms(user_ws: Dependencies.UserClient):
 def get_room_tables(space_id: str, user_ws: Dependencies.UserClient):
     ws = user_ws
 
-    space = ws.genie.get_space(space_id, include_serialized_space=True)
-
     table_names = []
-    if space.serialized_space:
-        try:
-            parsed = json.loads(space.serialized_space)
-            ds = parsed.get("data_sources") or parsed.get("dataSources") or {}
-            for tbl in ds.get("tables", []):
-                ident = tbl.get("identifier", "")
-                if ident:
-                    table_names.append(ident)
-        except (json.JSONDecodeError, AttributeError):
-            pass
+    try:
+        space = ws.genie.get_space(space_id, include_serialized_space=True)
+        if space.serialized_space:
+            try:
+                parsed = json.loads(space.serialized_space)
+                ds = parsed.get("data_sources") or parsed.get("dataSources") or {}
+                for tbl in ds.get("tables", []):
+                    ident = tbl.get("identifier", "")
+                    if ident:
+                        table_names.append(ident)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+    except Exception as e:
+        if "CAN EDIT" in str(e) or "permission" in str(e).lower():
+            space = ws.genie.get_space(space_id)
+            return {
+                "space_id": space.space_id,
+                "title": space.title or "Untitled",
+                "description": space.description or "",
+                "tables": [],
+                "error": "needs_edit_permission",
+            }
+        raise
 
     if not table_names:
         link = _room_links.get(space_id)
