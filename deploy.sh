@@ -67,6 +67,21 @@ EOF
 echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
 
+# ── Clean up old wheels from workspace ──
+CURRENT_WHL=$(basename .build/*.whl)
+for OLD_WHL in $(databricks workspace list "${SOURCE_PATH}" -p "$PROFILE" --output json 2>/dev/null \
+    | python3 -c "
+import sys,json
+current='$CURRENT_WHL'
+for f in json.load(sys.stdin):
+    p = f.get('path','')
+    if p.endswith('.whl') and not p.endswith(current):
+        print(p)
+" 2>/dev/null); do
+    echo "    Removing old wheel: $(basename "$OLD_WHL")"
+    databricks workspace delete "$OLD_WHL" -p "$PROFILE" 2>/dev/null
+done
+
 echo "==> Setting OBO scopes and resources..."
 databricks api patch "/api/2.0/apps/${APP_NAME}" -p "$PROFILE" --json "{
   \"user_api_scopes\": [
