@@ -13,23 +13,18 @@ _room_links: dict[str, dict] = {}
 
 @router.get("/rooms")
 def list_rooms(user_ws: Dependencies.UserClient):
+    resp = user_ws.genie.list_spaces()
     rooms = []
-    page_token = None
-    while True:
-        resp = user_ws.genie.list_spaces(page_token=page_token) if page_token else user_ws.genie.list_spaces()
-        for s in (resp.spaces or []):
-            link = _room_links.get(s.space_id)
-            rooms.append({
-                "space_id": s.space_id,
-                "title": s.title or "Untitled",
-                "description": s.description or "",
-                "linked": link is not None,
-                "catalog": link["catalog"] if link else None,
-                "schema": link["schema"] if link else None,
-            })
-        if not resp.next_page_token:
-            break
-        page_token = resp.next_page_token
+    for s in (resp.spaces or []):
+        link = _room_links.get(s.space_id)
+        rooms.append({
+            "space_id": s.space_id,
+            "title": s.title or "Untitled",
+            "description": s.description or "",
+            "linked": link is not None,
+            "catalog": link["catalog"] if link else None,
+            "schema": link["schema"] if link else None,
+        })
     return rooms
 
 
