@@ -8,15 +8,14 @@ variables:
 
 sync:
   include:
-    - _build
-    - _build/**
+    - .build
 
 resources:
   apps:
     midas-app:
       name: "midas"
       description: "Midas - AI Metadata Generator for Unity Catalog & Genie"
-      source_code_path: ./_build
+      source_code_path: ./.build
       permissions:
         - user_name: ${workspace.current_user.userName}
           level: CAN_MANAGE

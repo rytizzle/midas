@@ -41,7 +41,7 @@ APP_NAME="midas"
 
 DEPLOYER_EMAIL=$(databricks current-user me -p "$PROFILE" --output json \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['userName'])")
-SOURCE_PATH="/Workspace/Users/${DEPLOYER_EMAIL}/.bundle/midas/${TARGET}/files/_build"
+SOURCE_PATH="/Workspace/Users/${DEPLOYER_EMAIL}/.bundle/midas/${TARGET}/files/.build"
 
 echo "==> Deploy target: $TARGET"
 echo "    Profile:              $PROFILE"
@@ -51,16 +51,16 @@ echo ""
 
 # ── Build if needed ──
 NEEDS_BUILD=false
-if [ ! -d "$SCRIPT_DIR/_build" ] || [ ! -f "$SCRIPT_DIR/_build/requirements.txt" ]; then
+if [ ! -d "$SCRIPT_DIR/.build" ] || [ ! -f "$SCRIPT_DIR/.build/requirements.txt" ]; then
     NEEDS_BUILD=true
-elif [ -n "$(find "$SCRIPT_DIR/src" "$SCRIPT_DIR/vite.config.ts" "$SCRIPT_DIR/package.json" -newer "$SCRIPT_DIR/_build/requirements.txt" 2>/dev/null | head -1)" ]; then
+elif [ -n "$(find "$SCRIPT_DIR/src" "$SCRIPT_DIR/vite.config.ts" "$SCRIPT_DIR/package.json" -newer "$SCRIPT_DIR/.build/requirements.txt" 2>/dev/null | head -1)" ]; then
     NEEDS_BUILD=true
 fi
 
 if [ "$NEEDS_BUILD" = true ]; then
     echo "==> Building from source..."
-    rm -rf "$SCRIPT_DIR/_build"
-    mkdir -p "$SCRIPT_DIR/_build"
+    rm -rf "$SCRIPT_DIR/.build"
+    mkdir -p "$SCRIPT_DIR/.build"
 
     if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
         echo "    Installing frontend dependencies..."
@@ -73,24 +73,24 @@ if [ "$NEEDS_BUILD" = true ]; then
 
     echo "    Building wheel..."
     if command -v uv &>/dev/null; then
-        if ! uv build --wheel --out-dir "$SCRIPT_DIR/_build/" &>/dev/null; then
-            uv build --wheel --out-dir "$SCRIPT_DIR/_build/" --offline 2>&1 | tail -1
+        if ! uv build --wheel --out-dir "$SCRIPT_DIR/.build/" &>/dev/null; then
+            uv build --wheel --out-dir "$SCRIPT_DIR/.build/" --offline 2>&1 | tail -1
         fi
     else
-        pip wheel "$SCRIPT_DIR" --no-deps -w "$SCRIPT_DIR/_build/" -q
+        pip wheel "$SCRIPT_DIR" --no-deps -w "$SCRIPT_DIR/.build/" -q
     fi
 
-    WHL_NAME=$(basename "$SCRIPT_DIR/_build/"*.whl)
-    echo "$WHL_NAME" > "$SCRIPT_DIR/_build/requirements.txt"
-    cp -r "$SCRIPT_DIR/src/midas/__dist__" "$SCRIPT_DIR/_build/static"
+    WHL_NAME=$(basename "$SCRIPT_DIR/.build/"*.whl)
+    echo "$WHL_NAME" > "$SCRIPT_DIR/.build/requirements.txt"
+    cp -r "$SCRIPT_DIR/src/midas/__dist__" "$SCRIPT_DIR/.build/static"
 
-    cat > "$SCRIPT_DIR/_build/app.yml" <<'EOF'
+    cat > "$SCRIPT_DIR/.build/app.yml" <<'EOF'
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 EOF
 
     echo "    Built: $WHL_NAME"
 else
-    echo "==> Using existing _build/ (no source changes detected)"
+    echo "==> Using existing .build/ (no source changes detected)"
 fi
 
 # ── Helper to get app compute state ──
@@ -127,7 +127,7 @@ echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
 
 # ── Clean up old wheels from workspace ──
-CURRENT_WHL=$(basename _build/*.whl)
+CURRENT_WHL=$(basename .build/*.whl)
 for OLD_WHL in $(databricks workspace list "${SOURCE_PATH}" -p "$PROFILE" --output json 2>/dev/null \
     | python3 -c "
 import sys,json
