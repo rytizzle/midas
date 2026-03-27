@@ -93,17 +93,22 @@ else
     echo "==> Using existing _build/ (no source changes detected)"
 fi
 
-# ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
-if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
-    echo "==> App '$APP_NAME' not found — creating..."
-    databricks apps create -p "$PROFILE" --json "{\"name\": \"$APP_NAME\", \"description\": \"Midas - AI Metadata Generator\"}" --no-wait
-fi
-
-# ── Wait for compute to be ACTIVE or STOPPED before bundle deploy ──
+# ── Helper to get app compute state ──
 get_app_state() {
     databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
         | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))" 2>/dev/null || echo "UNKNOWN"
 }
+
+# ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
+APP_STATE=$(get_app_state)
+if [ "$APP_STATE" = "DELETING" ]; then
+    echo "==> App is being deleted — waiting..."
+    while databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; do sleep 5; done
+fi
+if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
+    echo "==> App '$APP_NAME' not found — creating..."
+    databricks apps create -p "$PROFILE" --json "{\"name\": \"$APP_NAME\", \"description\": \"Midas - AI Metadata Generator\"}" --no-wait
+fi
 APP_STATE=$(get_app_state)
 if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
     echo "==> Waiting for app compute to be ready (current: $APP_STATE)..."
