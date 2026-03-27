@@ -126,6 +126,9 @@ fi
 echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
 
+echo "==> Syncing .build/ to workspace..."
+databricks workspace import-dir "$SCRIPT_DIR/.build" "$SOURCE_PATH" -p "$PROFILE" --overwrite
+
 # ── Clean up old wheels from workspace ──
 CURRENT_WHL=$(basename .build/*.whl)
 for OLD_WHL in $(databricks workspace list "${SOURCE_PATH}" -p "$PROFILE" --output json 2>/dev/null \
