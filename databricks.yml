@@ -9,6 +9,7 @@ variables:
 sync:
   include:
     - .build
+    - .build/**
 
 resources:
   apps:
