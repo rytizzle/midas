@@ -12,6 +12,7 @@ set -e
 # All config lives in databricks.yml under targets.
 # ──────────────────────────────────────────────────────────────
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-dev}"
 PROFILE_OVERRIDE="${2:-}"
 
@@ -48,21 +49,38 @@ echo "    Deployer:             $DEPLOYER_EMAIL"
 echo "    Serving Endpoint:     $SERVING_ENDPOINT"
 echo ""
 
-# Use pre-built .build/ if it exists, otherwise build with apx
-if [ -d "$(dirname "$0")/.build" ]; then
-    echo "==> Using pre-built .build/"
-elif command -v apx &>/dev/null; then
-    echo "==> .build/ not found, building with apx..."
-    apx build
-else
-    echo "ERROR: .build/ directory not found and apx is not installed. Either pull .build/ from git or install apx (pip install databricks-apx)."
-    exit 1
+# ── Build from source ──
+echo "==> Building..."
+rm -rf "$SCRIPT_DIR/.build"
+mkdir -p "$SCRIPT_DIR/.build"
+
+if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+    echo "    Installing frontend dependencies..."
+    npm install --prefix "$SCRIPT_DIR" --silent
 fi
 
-# ── Inject runtime config into .build/app.yml ──
-cat > "$(dirname "$0")/.build/app.yml" <<EOF
+echo "    Building frontend..."
+npx vite build --config "$SCRIPT_DIR/vite.config.ts" 2>&1 | tail -3
+cp "$SCRIPT_DIR/src/midas/ui/public/logo.svg" "$SCRIPT_DIR/src/midas/__dist__/"
+
+echo "    Building wheel..."
+if command -v uv &>/dev/null; then
+    if ! uv build --wheel --out-dir "$SCRIPT_DIR/.build/" &>/dev/null; then
+        uv build --wheel --out-dir "$SCRIPT_DIR/.build/" --offline 2>&1 | tail -1
+    fi
+else
+    pip wheel "$SCRIPT_DIR" --no-deps -w "$SCRIPT_DIR/.build/" -q
+fi
+
+WHL_NAME=$(basename "$SCRIPT_DIR/.build/"*.whl)
+echo "$WHL_NAME" > "$SCRIPT_DIR/.build/requirements.txt"
+cp -r "$SCRIPT_DIR/src/midas/__dist__" "$SCRIPT_DIR/.build/static"
+
+cat > "$SCRIPT_DIR/.build/app.yml" <<'EOF'
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 EOF
+
+echo "    Built: $WHL_NAME"
 
 # ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
 if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
