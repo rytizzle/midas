@@ -49,38 +49,49 @@ echo "    Deployer:             $DEPLOYER_EMAIL"
 echo "    Serving Endpoint:     $SERVING_ENDPOINT"
 echo ""
 
-# ── Build from source ──
-echo "==> Building..."
-rm -rf "$SCRIPT_DIR/.build"
-mkdir -p "$SCRIPT_DIR/.build"
-
-if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
-    echo "    Installing frontend dependencies..."
-    npm install --prefix "$SCRIPT_DIR" --silent
+# ── Build if needed ──
+NEEDS_BUILD=false
+if [ ! -d "$SCRIPT_DIR/.build" ] || [ ! -f "$SCRIPT_DIR/.build/requirements.txt" ]; then
+    NEEDS_BUILD=true
+elif [ -n "$(find "$SCRIPT_DIR/src" "$SCRIPT_DIR/vite.config.ts" "$SCRIPT_DIR/package.json" -newer "$SCRIPT_DIR/.build/requirements.txt" 2>/dev/null | head -1)" ]; then
+    NEEDS_BUILD=true
 fi
 
-echo "    Building frontend..."
-npx vite build --config "$SCRIPT_DIR/vite.config.ts" 2>&1 | tail -3
-cp "$SCRIPT_DIR/src/midas/ui/public/logo.svg" "$SCRIPT_DIR/src/midas/__dist__/"
+if [ "$NEEDS_BUILD" = true ]; then
+    echo "==> Building from source..."
+    rm -rf "$SCRIPT_DIR/.build"
+    mkdir -p "$SCRIPT_DIR/.build"
 
-echo "    Building wheel..."
-if command -v uv &>/dev/null; then
-    if ! uv build --wheel --out-dir "$SCRIPT_DIR/.build/" &>/dev/null; then
-        uv build --wheel --out-dir "$SCRIPT_DIR/.build/" --offline 2>&1 | tail -1
+    if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+        echo "    Installing frontend dependencies..."
+        npm install --prefix "$SCRIPT_DIR" --silent
     fi
-else
-    pip wheel "$SCRIPT_DIR" --no-deps -w "$SCRIPT_DIR/.build/" -q
-fi
 
-WHL_NAME=$(basename "$SCRIPT_DIR/.build/"*.whl)
-echo "$WHL_NAME" > "$SCRIPT_DIR/.build/requirements.txt"
-cp -r "$SCRIPT_DIR/src/midas/__dist__" "$SCRIPT_DIR/.build/static"
+    echo "    Building frontend..."
+    npx vite build --config "$SCRIPT_DIR/vite.config.ts" 2>&1 | tail -3
+    cp "$SCRIPT_DIR/src/midas/ui/public/logo.svg" "$SCRIPT_DIR/src/midas/__dist__/"
 
-cat > "$SCRIPT_DIR/.build/app.yml" <<'EOF'
+    echo "    Building wheel..."
+    if command -v uv &>/dev/null; then
+        if ! uv build --wheel --out-dir "$SCRIPT_DIR/.build/" &>/dev/null; then
+            uv build --wheel --out-dir "$SCRIPT_DIR/.build/" --offline 2>&1 | tail -1
+        fi
+    else
+        pip wheel "$SCRIPT_DIR" --no-deps -w "$SCRIPT_DIR/.build/" -q
+    fi
+
+    WHL_NAME=$(basename "$SCRIPT_DIR/.build/"*.whl)
+    echo "$WHL_NAME" > "$SCRIPT_DIR/.build/requirements.txt"
+    cp -r "$SCRIPT_DIR/src/midas/__dist__" "$SCRIPT_DIR/.build/static"
+
+    cat > "$SCRIPT_DIR/.build/app.yml" <<'EOF'
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 EOF
 
-echo "    Built: $WHL_NAME"
+    echo "    Built: $WHL_NAME"
+else
+    echo "==> Using existing .build/ (no source changes detected)"
+fi
 
 # ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
 if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
