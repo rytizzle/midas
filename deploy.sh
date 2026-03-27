@@ -64,6 +64,29 @@ cat > "$(dirname "$0")/.build/app.yml" <<EOF
 command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 EOF
 
+# ── Pre-create app if it doesn't exist (Terraform provider requires it) ──
+if ! databricks apps get "$APP_NAME" -p "$PROFILE" &>/dev/null; then
+    echo "==> App '$APP_NAME' not found — creating..."
+    databricks apps create -p "$PROFILE" --json "{\"name\": \"$APP_NAME\", \"description\": \"Midas - AI Metadata Generator\"}" --no-wait
+fi
+
+# ── Wait for compute to be ACTIVE or STOPPED before bundle deploy ──
+APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
+    echo "==> Waiting for app compute to be ready (current: $APP_STATE)..."
+    for i in $(seq 1 60); do
+        APP_STATE=$(databricks apps get "$APP_NAME" -p "$PROFILE" --output json 2>/dev/null \
+            | python3 -c "import sys,json; print(json.load(sys.stdin).get('compute_status',{}).get('state','UNKNOWN'))")
+        [ "$APP_STATE" = "ACTIVE" ] || [ "$APP_STATE" = "STOPPED" ] && break
+        sleep 10
+    done
+    if [ "$APP_STATE" != "ACTIVE" ] && [ "$APP_STATE" != "STOPPED" ]; then
+        echo "ERROR: App compute did not become ready (current: $APP_STATE). Aborting."
+        exit 1
+    fi
+fi
+
 echo "==> Deploying bundle..."
 bundle_cmd bundle deploy -t "$TARGET"
 
