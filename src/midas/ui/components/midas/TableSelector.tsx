@@ -245,6 +245,7 @@ export default function TableSelector({
         </div>
       ) : (
         <div className="space-y-2">
+          <p className="text-xs text-slate-500 italic">Importing tables requires CAN EDIT access on the Genie space</p>
           <label className="text-sm font-medium text-slate-400">Genie Room</label>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-3 text-slate-500" />
