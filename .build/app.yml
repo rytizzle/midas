@@ -1,1 +1,1 @@
-command: ["uvicorn", "midas.backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+command: ["uvicorn", "midas.backend.app:app", "--workers", "2"]
